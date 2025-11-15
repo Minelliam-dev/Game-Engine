@@ -1,7 +1,7 @@
 import random as r
 from tkinter import Tk
 import tkinter as tk
-import time, os, platform
+import time, os, platform, string, pygame
 
 class terminal:
     def clear():
@@ -11,31 +11,14 @@ class terminal:
            os.system("clear")
 
     def color_print(color, text):
-        printed = False
-        if (color == "red") and not printed:
-            print('\033[31m' + str(text) + '\033[0m')
-            printed = True
-        if (color == "green") and not printed:
-            print('\033[32m' + str(text) + '\033[0m')
-            printed = True
-        if (color == "blue") and not printed:
-            print('\033[34m' + str(text) + '\033[0m')
-            printed = True
-        if (color == "normal") and not printed:
-            print('\033[0m' + str(text) + '\033[0m')
-            printed = True
-        if (color == "yellow") and not printed:
-            print('\033[33m' + str(text) + '\033[0m')
-            printed = True
-        if (color == "purple") and not printed:
-            print('\033[35m' + str(text) + '\033[0m')
-            printed = True
-        if (color == "cyan") and not printed:
-            print('\033[36m' + str(text) + '\033[0m')
-            printed = True
-        if (color == "gray") and not printed:
-            print('\033[30m' + str(text) + '\033[0m')
-            printed = True
+        if (color == "red"): print('\033[31m' + str(text) + '\033[0m')
+        if (color == "green"): print('\033[32m' + str(text) + '\033[0m')
+        if (color == "blue"): print('\033[34m' + str(text) + '\033[0m')
+        if (color == "normal"): print('\033[0m' + str(text) + '\033[0m')
+        if (color == "yellow"): print('\033[33m' + str(text) + '\033[0m')
+        if (color == "purple"): print('\033[35m' + str(text) + '\033[0m')
+        if (color == "cyan"): print('\033[36m' + str(text) + '\033[0m')
+        if (color == "gray"): print('\033[30m' + str(text) + '\033[0m')
 
 class gui:
     def label(text, Window, backgroundColor=None, foregroundColor="black", x=0, y=0):
@@ -59,6 +42,15 @@ class gui:
 
     def pack(asset):
         asset.pack()
+
+    def SetButtonSize(Button, height, width):
+        Button.config(height=height, width=width)
+    
+    def SetLabelText(Label, new_text):
+        Label.config(text=new_text)
+    
+    def SetButtonFunction(Button, function):
+        Button.config(command=function)
 
 class window:
     def changeIcon(Window, ico_File):
@@ -99,7 +91,18 @@ class window:
         Window.overrideredirect(boolean)
     
     def AllowResize(Window, boolean):
-        Window.resizable(width=None, height=None)
+        Window.resizable(width=boolean, height=boolean)
+    
+    def CursorVisible(Window, boolean):
+        if boolean:
+            Window.config(cursor="")   # Show cursor
+        else:
+            Window.config(cursor="none")  # Hide cursor
+
+    def Fullscreen(Window, boolean):
+        Window.overrideredirect(False)
+        Window.attributes('-fullscreen', boolean)
+        Window.overrideredirect(True)
 
 class device:
     def cpu_cores():
@@ -150,10 +153,10 @@ class Canvas:
         return canvas.get(x, y)
 
 class random:
-    def randomint(a, b):
+    def Randomint(a, b):
         return r.randint(a, b)
 
-    def randomfloat(a, b):
+    def Randomfloat(a, b):
         number = r.randint(a * 1000, b * 1000)
         number /= 1000
         return number
@@ -162,16 +165,42 @@ class random:
         color = f"#{random.randomint(0,255):02x}{random.randomint(0,255):02x}{random.randomint(0,255):02x}"
         return color
     
-    def screen(GRID_SIZE, PIXEL_SIZE, Window):
+    def Screen(GRID_SIZE, PIXEL_SIZE, Window):
         for _ in range((GRID_SIZE * GRID_SIZE) * GRID_SIZE):
             x = random.randomint(0, GRID_SIZE - 1)
             y = random.randomint(0, GRID_SIZE - 1)
             color = f"#{random.randomint(0,255):02x}{random.randomint(0,255):02x}{random.randomint(0,255):02x}"
             window.draw_pixel(x, y, color, canvas, PIXEL_SIZE)
             window.update(Window)
+    
+    def Letter(amount):
+        result = ""
+        for i in range(amount):
+            result = (result + r.choice(string.ascii_letters))
+        return result
+
+class sound:
+    _loaded_sounds = {}
 
 
+    def play(file, volume=1.0, loop=False):
+        if not pygame.mixer.get_init():
+            pygame.mixer.init()
 
+        if file not in sound._loaded_sounds:
+            sound._loaded_sounds[file] = pygame.mixer.Sound(file)
+
+        snd = sound._loaded_sounds[file]
+
+        volume = max(0, min(1, volume))
+        snd.set_volume(volume)
+
+        loops = -1 if loop else 0
+        snd.play(loops=loops)
+
+    def StopAll():
+        if pygame.mixer.get_init():
+            pygame.mixer.stop()
 
 # Example usage
 terminal.clear()
@@ -182,8 +211,8 @@ terminal.color_print("normal", "white")
 terminal.color_print("yellow", "yellow")
 terminal.color_print("purple", "purple")
 terminal.color_print("cyan", "cyan")
-terminal.color_print("gray", "gray")
-terminal.color_print("blue", str(random.randomfloat(0, 1)))
+terminal.color_print("gray", random.Letter(50))
+terminal.color_print("blue", str(random.Randomfloat(0, 1)))
 
 window_name = window.new_window(500, 500, "test")
 label1 = gui.label("test", window_name, None, "green", 1, 1)
@@ -204,12 +233,22 @@ def test(event): print("test")
 
 def kill(event): window.close(window_name)
 
+def set_text(event): gui.SetLabelText(label1, "testtttttt")
+
 button2 = gui.button("test", 0, 100, lambda: print("test"), window_name, "dark")
-button3 = gui.button("test", 0, 0, lambda: print("test2"), window_name, "light")
+button3 = gui.button("close", 0, 0, lambda: window.close(window_name), window_name, "light")
+button4 = gui.button("set label", 0, 50, lambda: gui.SetLabelText(label1, "testing the changing of label text"), window_name, "light")
+button5 = gui.button("change button defenition", 0, 150, lambda: gui.SetButtonFunction(button4, gui.SetLabelText(label1, "testing the changing of label text for the second time")), window_name, "light")
+button6 = gui.button("play sound", 50, 100, lambda: sound.play("sound.wav", 1, False), window_name, "dark")
+button7 = gui.button("stop sound", 50, 150, lambda: sound.StopAll(), window_name, "dark")
 
-window.changeIcon(window_name, "C:\\Users\\willi\\Desktop\\Poop engine\\library\\icon.ico")
+gui.SetButtonSize(button3, 0, 10)
 
-window.HideTitleBar(window_name, False)
+window.changeIcon(window_name, "icon.ico")
+window.HideTitleBar(window_name, True)
+window.CursorVisible(window_name, True)
+window.AllowResize(window_name, False)
+window.Fullscreen(window_name, True)
 
 print(device.cpu_cores())
 print(device.plattform())
