@@ -61,21 +61,26 @@ class gui:
         asset.pack()
 
 class window:
+    def changeIcon(Window, ico_File):
+        Window.iconbitmap(ico_File)
+    
+    def getFPS(prev=[None]):
+        now = time.perf_counter()
+        if prev[0] is None:
+            prev[0] = now
+            return 0
+        delta = now - prev[0]
+        prev[0] = now
+        if delta == 0:
+            return 0
+        return 1 / delta
+    
     def new_window(height, width, name):
         window_size = str(width) + "x" + str(height)
         window = Tk()
         window.title(name)
         window.geometry(window_size)
         return window
-
-    def create_canvas(width, height, Background, window, x, y):
-        canvas = tk.Canvas(window, width=width, height=height, bg=Background)
-        gui.pack(canvas)
-        img = tk.PhotoImage(width=width, height=height)
-        canvas.create_image((width / 2, height / 2), image=img, state="normal")
-        canvas.place(x=x, y=y)
-        
-        return img
 
     def set_cursor(new_cursor, Window):
         window = Window
@@ -89,6 +94,18 @@ class window:
 
     def mainloop(Window):
         Window.mainloop()
+    
+    def HideTitleBar(Window, boolean):
+        Window.overrideredirect(boolean)
+    
+    def AllowResize(Window, boolean):
+        Window.resizable(width=None, height=None)
+
+class device:
+    def cpu_cores():
+        return os.cpu_count()
+    def plattform():
+        return platform.system()
 
 class Mouse:
     def __init__(self, window):
@@ -111,6 +128,14 @@ class input:
         window.bind(f"<KeyPress-{key}>", function)
 
 class Canvas:
+    def create_canvas(width, height, Background, window, x, y):
+        canvas = tk.Canvas(window, width=width, height=height, bg=Background)
+        gui.pack(canvas)
+        img = tk.PhotoImage(width=width, height=height)
+        canvas.create_image((width / 2, height / 2), image=img, state="normal")
+        canvas.place(x=x, y=y)
+        return img
+    
     def draw_pixel(x, y, hex_color, canvas, pixel_size):
         x = x * pixel_size
         y = y * pixel_size
@@ -136,15 +161,17 @@ class random:
     def HEX_color():
         color = f"#{random.randomint(0,255):02x}{random.randomint(0,255):02x}{random.randomint(0,255):02x}"
         return color
-
+    
     def screen(GRID_SIZE, PIXEL_SIZE, Window):
         for _ in range((GRID_SIZE * GRID_SIZE) * GRID_SIZE):
-            # Color all pixels randomly
             x = random.randomint(0, GRID_SIZE - 1)
             y = random.randomint(0, GRID_SIZE - 1)
             color = f"#{random.randomint(0,255):02x}{random.randomint(0,255):02x}{random.randomint(0,255):02x}"
             window.draw_pixel(x, y, color, canvas, PIXEL_SIZE)
             window.update(Window)
+
+
+
 
 # Example usage
 terminal.clear()
@@ -162,7 +189,7 @@ window_name = window.new_window(500, 500, "test")
 label1 = gui.label("test", window_name, None, "green", 1, 1)
 gui.pack(label1)
 
-canvas = window.create_canvas(500, 500, "#000000", window_name, -2, 0)
+canvas = Canvas.create_canvas(500, 500, "#000000", window_name, -2, 0)
 Canvas.draw_pixel(9, 9, "#ff0000", canvas, 50)
 Canvas.draw_pixel(0, 0, "#ff0000", canvas, 50)
 window.set_cursor("cross", window_name)
@@ -170,18 +197,28 @@ window_name.config()
 
 mouse = Mouse(window_name)
 
+print_FPS = False
+print_mouseX = False
+
 def test(event): print("test")
 
 def kill(event): window.close(window_name)
 
 button2 = gui.button("test", 0, 100, lambda: print("test"), window_name, "dark")
-button3 = gui.button("test", 0, 0, lambda: print("test"), window_name, "light")
-terminal.clear()
+button3 = gui.button("test", 0, 0, lambda: print("test2"), window_name, "light")
 
-print(platform.system)
+window.changeIcon(window_name, "C:\\Users\\willi\\Desktop\\Poop engine\\library\\icon.ico")
+
+window.HideTitleBar(window_name, False)
+
+print(device.cpu_cores())
+print(device.plattform())
 
 while True:
     window.update(window_name)
-    #mouse_X = mouse.get_X()
-    #print(mouse_X)
+    if print_mouseX == True:
+        mouse_X = mouse.get_X()
+        print(mouse_X)
     input.key(window_name, "w", kill)
+    if print_FPS == True:
+        print(window.getFPS())
