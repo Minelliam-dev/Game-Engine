@@ -1,7 +1,7 @@
 import random as r
 from tkinter import Tk
 import tkinter as tk
-import time, os, platform
+import time, os, platform, string
 
 class terminal:
     def clear():
@@ -60,6 +60,15 @@ class gui:
     def pack(asset):
         asset.pack()
 
+    def SetButtonSize(Button, height, width):
+        Button.config(height=height, width=width)
+    
+    def SetLabelText(Label, new_text):
+        Label.config(text=new_text)
+    
+    def SetButtonFunction(Button, function):
+        Button.config(command=function)
+
 class window:
     def changeIcon(Window, ico_File):
         Window.iconbitmap(ico_File)
@@ -99,7 +108,18 @@ class window:
         Window.overrideredirect(boolean)
     
     def AllowResize(Window, boolean):
-        Window.resizable(width=None, height=None)
+        Window.resizable(width=boolean, height=boolean)
+    
+    def CursorVisible(Window, boolean):
+        if boolean:
+            Window.config(cursor="")   # Show cursor
+        else:
+            Window.config(cursor="none")  # Hide cursor
+
+    def Fullscreen(Window, boolean):
+        Window.overrideredirect(False)
+        Window.attributes('-fullscreen', boolean)
+        Window.overrideredirect(True)
 
 class device:
     def cpu_cores():
@@ -150,10 +170,10 @@ class Canvas:
         return canvas.get(x, y)
 
 class random:
-    def randomint(a, b):
+    def Randomint(a, b):
         return r.randint(a, b)
 
-    def randomfloat(a, b):
+    def Randomfloat(a, b):
         number = r.randint(a * 1000, b * 1000)
         number /= 1000
         return number
@@ -162,19 +182,27 @@ class random:
         color = f"#{random.randomint(0,255):02x}{random.randomint(0,255):02x}{random.randomint(0,255):02x}"
         return color
     
-    def screen(GRID_SIZE, PIXEL_SIZE, Window):
+    def Screen(GRID_SIZE, PIXEL_SIZE, Window):
         for _ in range((GRID_SIZE * GRID_SIZE) * GRID_SIZE):
             x = random.randomint(0, GRID_SIZE - 1)
             y = random.randomint(0, GRID_SIZE - 1)
             color = f"#{random.randomint(0,255):02x}{random.randomint(0,255):02x}{random.randomint(0,255):02x}"
             window.draw_pixel(x, y, color, canvas, PIXEL_SIZE)
             window.update(Window)
-
-
+    
+    def Letter(amount):
+        result = ""
+        for i in range(amount):
+            result = (result + r.choice(string.ascii_letters))
+        return result
 
 
 # Example usage
 terminal.clear()
+
+print(random.Letter(50))
+
+
 terminal.color_print("red", "red")
 terminal.color_print("green", "green")
 terminal.color_print("blue", "blue")
@@ -183,7 +211,7 @@ terminal.color_print("yellow", "yellow")
 terminal.color_print("purple", "purple")
 terminal.color_print("cyan", "cyan")
 terminal.color_print("gray", "gray")
-terminal.color_print("blue", str(random.randomfloat(0, 1)))
+terminal.color_print("blue", str(random.Randomfloat(0, 1)))
 
 window_name = window.new_window(500, 500, "test")
 label1 = gui.label("test", window_name, None, "green", 1, 1)
@@ -204,12 +232,21 @@ def test(event): print("test")
 
 def kill(event): window.close(window_name)
 
+def set_text(event): gui.SetLabelText(label1, "testtttttt")
+
 button2 = gui.button("test", 0, 100, lambda: print("test"), window_name, "dark")
-button3 = gui.button("test", 0, 0, lambda: print("test2"), window_name, "light")
+button3 = gui.button("close", 0, 0, lambda: window.close(window_name), window_name, "light")
+button4 = gui.button("set label", 0, 50, lambda: gui.SetLabelText(label1, "testing the changing of label text"), window_name, "light")
+button5 = gui.button("change button defenition", 0, 150, lambda: gui.SetButtonFunction(button4, gui.SetLabelText(label1, "testing the changing of label text for the second time")), window_name, "light")
+
+
+gui.SetButtonSize(button3, 0, 10)
 
 window.changeIcon(window_name, "C:\\Users\\willi\\Desktop\\Poop engine\\library\\icon.ico")
-
-window.HideTitleBar(window_name, False)
+window.HideTitleBar(window_name, True)
+window.CursorVisible(window_name, True)
+window.AllowResize(window_name, False)
+window.Fullscreen(window_name, True)
 
 print(device.cpu_cores())
 print(device.plattform())
