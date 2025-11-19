@@ -1,7 +1,8 @@
 import random as r
 from tkinter import Tk
 import tkinter as tk
-import time, os, platform, string, pygame, numpy
+import time, os, platform, string, numpy
+from pygame import mixer
 
 class terminal:
     def clear():
@@ -188,23 +189,23 @@ class sound:
 
 
     def play(file, volume=1.0, loop=False):
-        if not pygame.mixer.get_init():
-            pygame.mixer.init()
+        if not mixer.get_init():
+            mixer.init()
 
         if file not in sound._loaded_sounds:
-            sound._loaded_sounds[file] = pygame.mixer.Sound(file)
+            sound._loaded_sounds[file] = mixer.Sound(file)
 
         snd = sound._loaded_sounds[file]
 
         volume = max(0, min(1, volume))
         snd.set_volume(volume)
-        
+
         loops = -1 if loop else 0
         snd.play(loops=loops)
 
     def StopAll():
-        if pygame.mixer.get_init():
-            pygame.mixer.stop()
+        if mixer.get_init():
+            mixer.stop()
 
 # Example usage
 terminal.clear()
@@ -243,23 +244,26 @@ button2 = gui.button("test", 0, 100, lambda: print("test"), window_name, "dark")
 button3 = gui.button("close", 0, 0, lambda: window.close(window_name), window_name, "light")
 button4 = gui.button("set label", 0, 50, lambda: gui.SetLabelText(label1, "testing the changing of label text"), window_name, "light")
 button5 = gui.button("change button defenition", 0, 150, lambda: gui.SetButtonFunction(button4, gui.SetLabelText(label1, "testing the changing of label text for the second time")), window_name, "light")
-button6 = gui.button("play sound", 50, 100, lambda: sound.play("sound.wav", 1, False), window_name, "dark")
-button7 = gui.button("stop sound", 50, 150, lambda: sound.StopAll(), window_name, "dark")
+button6 = gui.button("play sound", 0, 200, lambda: sound.play("sound.wav", 1, False), window_name, "dark")
+button7 = gui.button("stop sound", 70, 200, lambda: sound.StopAll(), window_name, "dark")
 
 gui.SetButtonSize(button3, 0, 10)
 
 #window.changeIcon(window_name, "icon.ico")
-window.HideTitleBar(window_name, True)
 window.CursorVisible(window_name, True)
 window.AllowResize(window_name, False)
-window.Fullscreen(window_name, False)
+
+button8 = gui.button("Fullscreen off", 100, 50, lambda: window.Fullscreen(window_name, False), window_name, "dark")
+button9 = gui.button("Fullscreen on", 100, 100, lambda: window.Fullscreen(window_name, True), window_name, "dark")
+button10 = gui.button("Hide Title Bar off", 200, 50, lambda: window.HideTitleBar(window_name, False), window_name, "dark")
+button11 = gui.button("Hide Title Bar on", 200, 100, lambda: window.HideTitleBar(window_name, True), window_name, "dark")
 
 print(device.cpu_cores())
 print(device.plattform())
 
 while True:
     window.update(window_name)
-    #Canvas.draw_pixel(0, 0, random.HEX_color(), canvas, 50)
+    Canvas.draw_pixel(0, 0, random.HEX_color(), canvas, 50)
     random.Screen(10, 50, window_name)
     if print_mouseX == True:
         mouse_X = mouse.get_X()
