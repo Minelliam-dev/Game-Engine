@@ -1,7 +1,7 @@
 import random as r
 from tkinter import Tk
 import tkinter as tk
-import time, os, platform, string, pygame
+import time, os, platform, string, pygame, numpy
 
 class terminal:
     def clear():
@@ -95,9 +95,9 @@ class window:
     
     def CursorVisible(Window, boolean):
         if boolean:
-            Window.config(cursor="")   # Show cursor
+            Window.config(cursor="")
         else:
-            Window.config(cursor="none")  # Hide cursor
+            Window.config(cursor="none")
 
     def Fullscreen(Window, boolean):
         Window.overrideredirect(False)
@@ -147,6 +147,9 @@ class Canvas:
         else:
             canvas.put(hex_color, to=(x, y, (x + pixel_size), (y + pixel_size)))
 
+    def line(a_x, a_y, b_x, b_y, canvas, hex_color, pixel_size, grid_size):
+        pass
+
     def get_pixel(x, y, canvas, grid_size):
         x *= grid_size
         y *= grid_size
@@ -162,17 +165,18 @@ class random:
         return number
 
     def HEX_color():
-        color = f"#{random.randomint(0,255):02x}{random.randomint(0,255):02x}{random.randomint(0,255):02x}"
+        color = f"#{r.randint(0,255):02x}{r.randint(0,255):02x}{r.randint(0,255):02x}"
         return color
     
     def Screen(GRID_SIZE, PIXEL_SIZE, Window):
-        for _ in range((GRID_SIZE * GRID_SIZE) * GRID_SIZE):
-            x = random.randomint(0, GRID_SIZE - 1)
-            y = random.randomint(0, GRID_SIZE - 1)
-            color = f"#{random.randomint(0,255):02x}{random.randomint(0,255):02x}{random.randomint(0,255):02x}"
-            window.draw_pixel(x, y, color, canvas, PIXEL_SIZE)
-            window.update(Window)
-    
+        for t in range(GRID_SIZE):
+            for i in range(GRID_SIZE):
+                color = f"#{r.randint(0,255):02x}{r.randint(0,255):02x}{r.randint(0,255):02x}"
+                x = (i)
+                y = (t)
+                Canvas.draw_pixel(x, y, color, canvas, PIXEL_SIZE)
+        window.update(Window)
+        
     def Letter(amount):
         result = ""
         for i in range(amount):
@@ -194,7 +198,7 @@ class sound:
 
         volume = max(0, min(1, volume))
         snd.set_volume(volume)
-
+        
         loops = -1 if loop else 0
         snd.play(loops=loops)
 
@@ -226,7 +230,7 @@ window_name.config()
 
 mouse = Mouse(window_name)
 
-print_FPS = False
+print_FPS = True
 print_mouseX = False
 
 def test(event): print("test")
@@ -244,17 +248,19 @@ button7 = gui.button("stop sound", 50, 150, lambda: sound.StopAll(), window_name
 
 gui.SetButtonSize(button3, 0, 10)
 
-window.changeIcon(window_name, "icon.ico")
+#window.changeIcon(window_name, "icon.ico")
 window.HideTitleBar(window_name, True)
 window.CursorVisible(window_name, True)
 window.AllowResize(window_name, False)
-window.Fullscreen(window_name, True)
+window.Fullscreen(window_name, False)
 
 print(device.cpu_cores())
 print(device.plattform())
 
 while True:
     window.update(window_name)
+    #Canvas.draw_pixel(0, 0, random.HEX_color(), canvas, 50)
+    random.Screen(10, 50, window_name)
     if print_mouseX == True:
         mouse_X = mouse.get_X()
         print(mouse_X)
