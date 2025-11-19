@@ -1,8 +1,7 @@
 import random as r
 from tkinter import Tk
 import tkinter as tk
-import time, os, platform, string, numpy
-from pygame import mixer
+import time, os, platform, string, numpy, subprocess, threading, wave
 
 class terminal:
     def clear():
@@ -103,7 +102,9 @@ class window:
     def Fullscreen(Window, boolean):
         Window.overrideredirect(False)
         Window.attributes('-fullscreen', boolean)
-        Window.overrideredirect(True)
+
+    def Title(Window, title):
+        Window.title(title)
 
 class device:
     def cpu_cores():
@@ -185,27 +186,117 @@ class random:
         return result
 
 class sound:
-    _loaded_sounds = {}
+    _active_processes = []
+    _converted_cache = {}   # maps original file → converted PCM file
 
+    # -------------------------------
+    #   CHECK IF WAV IS PCM 16-BIT
+    # -------------------------------
+    @staticmethod
+    def _is_pcm_wav(filepath):
+        try:
+            with wave.open(filepath, "rb") as w:
+                return w.getsampwidth() == 2 and w.getcomptype() == "NONE"
+        except:
+            return False
 
-    def play(file, volume=1.0, loop=False):
-        if not mixer.get_init():
-            mixer.init()
+    # -------------------------------
+    #   CONVERT WAV TO PCM 16-BIT
+    # -------------------------------
+    @staticmethod
+    def _convert_to_pcm(input_file):
+        # Already converted?
+        if input_file in sound._converted_cache:
+            return sound._converted_cache[input_file]
 
-        if file not in sound._loaded_sounds:
-            sound._loaded_sounds[file] = mixer.Sound(file)
+        base, ext = os.path.splitext(input_file)
+        output_file = base + "_pcm.wav"
 
-        snd = sound._loaded_sounds[file]
+        command = [
+            "ffmpeg",
+            "-y",
+            "-i", input_file,
+            "-acodec", "pcm_s16le",
+            "-ar", "44100",
+            output_file
+        ]
 
-        volume = max(0, min(1, volume))
-        snd.set_volume(volume)
+        try:
+            subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            sound._converted_cache[input_file] = output_file
+            return output_file
+        except FileNotFoundError:
+            print("[ERROR] FFmpeg is not installed. Cannot convert WAV.")
+            return None
+        except subprocess.CalledProcessError as e:
+            print("[FFmpeg Conversion Error]")
+            print(e.stderr.decode())
+            return None
 
-        loops = -1 if loop else 0
-        snd.play(loops=loops)
+    # -------------------------------
+    #   PLAYBACK (AUTO CONVERT)
+    # -------------------------------
+    @staticmethod
+    def _prepare_file(file):
+        # Only Windows requires PCM WAV
+        if platform.system() == "Windows":
+            if not sound._is_pcm_wav(file):
+                print("[INFO] Converting WAV to PCM for Windows...")
+                converted = sound._convert_to_pcm(file)
+                if converted:
+                    return converted
+        return file
 
+    @staticmethod
+    def _play_once(file):
+        system = platform.system()
+        file = sound._prepare_file(file)
+
+        if system == "Darwin":  # macOS
+            return subprocess.Popen(["afplay", file])
+
+        elif system == "Linux":
+            try:
+                return subprocess.Popen(["aplay", file])
+            except FileNotFoundError:
+                return subprocess.Popen(["paplay", file])
+
+        elif system == "Windows":
+            import winsound
+            winsound.PlaySound(file, winsound.SND_FILENAME | winsound.SND_ASYNC)
+            return None
+
+    # -------------------------------
+    #   PUBLIC METHODS
+    # -------------------------------
+    @staticmethod
+    def play(file, loop=False):
+        def loop_play():
+            while True:
+                sound._play_once(file)
+
+        if loop:
+            t = threading.Thread(target=loop_play, daemon=True)
+            t.start()
+        else:
+            p = sound._play_once(file)
+            if p:
+                sound._active_processes.append(p)
+
+    @staticmethod
     def StopAll():
-        if mixer.get_init():
-            mixer.stop()
+        # Mac & Linux processes
+        for p in sound._active_processes:
+            try:
+                p.terminate()
+            except:
+                pass
+        sound._active_processes.clear()
+
+        # Windows winsound stop
+        if platform.system() == "Windows":
+            import winsound
+            winsound.PlaySound(None, winsound.SND_PURGE)
 
 # Example usage
 terminal.clear()
@@ -244,14 +335,14 @@ button2 = gui.button("test", 0, 100, lambda: print("test"), window_name, "dark")
 button3 = gui.button("close", 0, 0, lambda: window.close(window_name), window_name, "light")
 button4 = gui.button("set label", 0, 50, lambda: gui.SetLabelText(label1, "testing the changing of label text"), window_name, "light")
 button5 = gui.button("change button defenition", 0, 150, lambda: gui.SetButtonFunction(button4, gui.SetLabelText(label1, "testing the changing of label text for the second time")), window_name, "light")
-button6 = gui.button("play sound", 0, 200, lambda: sound.play("sound.wav", 1, False), window_name, "dark")
+button6 = gui.button("play sound", 0, 200, lambda: sound.play("sound.wav", False), window_name, "dark")
 button7 = gui.button("stop sound", 70, 200, lambda: sound.StopAll(), window_name, "dark")
 
 gui.SetButtonSize(button3, 0, 10)
 
 #window.changeIcon(window_name, "icon.ico")
 window.CursorVisible(window_name, True)
-window.AllowResize(window_name, False)
+window.AllowResize(window_name, True)
 
 button8 = gui.button("Fullscreen off", 100, 50, lambda: window.Fullscreen(window_name, False), window_name, "dark")
 button9 = gui.button("Fullscreen on", 100, 100, lambda: window.Fullscreen(window_name, True), window_name, "dark")
@@ -270,4 +361,4 @@ while True:
         print(mouse_X)
     input.key(window_name, "w", kill)
     if print_FPS == True:
-        print(window.getFPS())
+        window.Title(window_name, str(window.getFPS()))
