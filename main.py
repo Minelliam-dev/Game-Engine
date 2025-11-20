@@ -3,7 +3,7 @@ from tkinter import Tk
 import tkinter as tk
 import time, os, platform, string, numpy, subprocess, threading, wave
 
-class terminal:
+class console:
     def clear():
         if platform.system() == "Windows":
             os.system("cls")
@@ -92,7 +92,7 @@ class window:
     
     def AllowResize(Window, boolean):
         Window.resizable(width=boolean, height=boolean)
-    
+
     def CursorVisible(Window, boolean):
         if boolean:
             Window.config(cursor="")
@@ -109,6 +109,7 @@ class window:
 class device:
     def cpu_cores():
         return os.cpu_count()
+    
     def plattform():
         return platform.system()
 
@@ -121,7 +122,7 @@ class Mouse:
     def mouse_move(self, event):
         self.x = event.x
         self.y = event.y
-
+    
     def get_X(self):
         return self.x
 
@@ -140,7 +141,7 @@ class Canvas:
         canvas.create_image((width / 2, height / 2), image=img, state="normal")
         canvas.place(x=x, y=y)
         return img
-    
+
     def draw_pixel(x, y, hex_color, canvas, pixel_size):
         x = x * pixel_size
         y = y * pixel_size
@@ -158,6 +159,7 @@ class Canvas:
         return canvas.get(x, y)
 
 class random:
+
     def Randomint(a, b):
         return r.randint(a, b)
 
@@ -169,7 +171,7 @@ class random:
     def HEX_color():
         color = f"#{r.randint(0,255):02x}{r.randint(0,255):02x}{r.randint(0,255):02x}"
         return color
-    
+
     def Screen(GRID_SIZE, PIXEL_SIZE, Window):
         for t in range(GRID_SIZE):
             for i in range(GRID_SIZE):
@@ -178,7 +180,7 @@ class random:
                 y = (t)
                 Canvas.draw_pixel(x, y, color, canvas, PIXEL_SIZE)
         window.update(Window)
-        
+
     def Letter(amount):
         result = ""
         for i in range(amount):
@@ -266,9 +268,6 @@ class sound:
             winsound.PlaySound(file, winsound.SND_FILENAME | winsound.SND_ASYNC)
             return None
 
-    # -------------------------------
-    #   PUBLIC METHODS
-    # -------------------------------
     @staticmethod
     def play(file, loop=False):
         def loop_play():
@@ -299,19 +298,20 @@ class sound:
             winsound.PlaySound(None, winsound.SND_PURGE)
 
 # Example usage
-terminal.clear()
-terminal.color_print("red", "red")
-terminal.color_print("green", "green")
-terminal.color_print("blue", "blue")
-terminal.color_print("normal", "white")
-terminal.color_print("yellow", "yellow")
-terminal.color_print("purple", "purple")
-terminal.color_print("cyan", "cyan")
-terminal.color_print("gray", random.Letter(50))
-terminal.color_print("blue", str(random.Randomfloat(0, 1)))
+console.clear()
+console.color_print("red", "red")
+console.color_print("green", "green")
+console.color_print("blue", "blue")
+console.color_print("normal", "white")
+console.color_print("yellow", "yellow")
+console.color_print("purple", "purple")
+console.color_print("cyan", "cyan")
+console.color_print("gray", random.Letter(50))
+console.color_print("blue", str(random.Randomfloat(0, 1)))
 
 window_name = window.new_window(500, 500, "test")
 label1 = gui.label("test", window_name, None, "green", 1, 1)
+label2 = gui.label("mouse", window_name, None, "black", 1, 1)
 gui.pack(label1)
 
 canvas = Canvas.create_canvas(500, 500, "#000000", window_name, -2, 0)
@@ -323,7 +323,7 @@ window_name.config()
 mouse = Mouse(window_name)
 
 print_FPS = True
-print_mouseX = False
+print_mouseX = True
 
 def test(event): print("test")
 
@@ -340,7 +340,11 @@ button7 = gui.button("stop sound", 70, 200, lambda: sound.StopAll(), window_name
 
 gui.SetButtonSize(button3, 0, 10)
 
-#window.changeIcon(window_name, "icon.ico")
+try:
+    window.changeIcon(window_name, "icon.ico")
+except:
+    print("could not load icon, maybe check its name and location ?")
+
 window.CursorVisible(window_name, True)
 window.AllowResize(window_name, True)
 
@@ -348,17 +352,14 @@ button8 = gui.button("Fullscreen off", 100, 50, lambda: window.Fullscreen(window
 button9 = gui.button("Fullscreen on", 100, 100, lambda: window.Fullscreen(window_name, True), window_name, "dark")
 button10 = gui.button("Hide Title Bar off", 200, 50, lambda: window.HideTitleBar(window_name, False), window_name, "dark")
 button11 = gui.button("Hide Title Bar on", 200, 100, lambda: window.HideTitleBar(window_name, True), window_name, "dark")
+button12 = gui.button("randomise screen", 200, 130, lambda: random.Screen(10, 50, window_name), window_name, "dark")
 
 print(device.cpu_cores())
 print(device.plattform())
 
 while True:
     window.update(window_name)
-    Canvas.draw_pixel(0, 0, random.HEX_color(), canvas, 50)
-    random.Screen(10, 50, window_name)
-    if print_mouseX == True:
-        mouse_X = mouse.get_X()
-        print(mouse_X)
+    mouse_X = mouse.get_X()
+    gui.SetLabelText(label2, str(mouse_X))
     input.key(window_name, "w", kill)
-    if print_FPS == True:
-        window.Title(window_name, str(window.getFPS()))
+    window.Title(window_name, str(window.getFPS()))
