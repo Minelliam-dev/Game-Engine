@@ -1,5 +1,5 @@
 import random as r
-from tkinter import Tk
+from tkinter import Tk, ttk
 import tkinter as tk
 import time, os, platform, string, numpy, subprocess, threading, wave
 
@@ -51,6 +51,27 @@ class gui:
     
     def SetButtonFunction(Button, function):
         Button.config(command=function)
+    
+    def slider(Window, x, y, max_value, min_value, orientation="horizontal"):
+        cale2 = ttk.Scale(Window, from_=min_value, to=max_value, orient=orientation, style="")
+        cale2.place(x=x, y=y)
+        return cale2
+
+    def sliderValue(slider):
+        return int(slider.get())
+    
+    def disableSlider(slider, boolean=True):
+        if boolean:
+            slider['state'] = 'disabled'
+        else:
+            slider['state'] = 'normal'
+
+    def setSlider(slider, value):
+        variable2 = tk.IntVar(value = value)
+        slider.config(variable=variable2)
+
+    def sliderStyle(slider, style):
+        ttk.Scale(style="")
 
 class window:
     def changeIcon(Window, ico_File):
@@ -357,7 +378,17 @@ button12 = gui.button("randomise screen", 200, 130, lambda: random.Screen(10, 50
 print(device.cpu_cores())
 print(device.plattform())
 
+
+
+slider = gui.slider(window_name, 0, 0, 100, 0, "horizontal")
+
+gui.disableSlider(slider, False)
+gui.setSlider(slider, 50)
+
+
 while True:
+    gui.setSlider(slider, 50)
+    print(gui.sliderValue(slider))
     window.update(window_name)
     mouse_X = mouse.get_X()
     gui.SetLabelText(label2, str(mouse_X))
