@@ -178,9 +178,6 @@ class Canvas:
         else:
             canvas.put(hex_color, to=(x, y, (x + pixel_size), (y + pixel_size)))
 
-    def line(a_x, a_y, b_x, b_y, canvas, hex_color, pixel_size, grid_size):
-        pass
-
     def get_pixel(x, y, canvas, grid_size):
         x *= grid_size
         y *= grid_size
@@ -190,17 +187,15 @@ class Canvas:
         try:
             img = Image.open(path)
 
-            # --- 1. Upscale with nearest (sharpened pixel edges) ---
             scale_factor = 4
             img = img.resize(
                 (img.width * scale_factor, img.height * scale_factor),
                 Image.NEAREST
             )
 
-            # --- 2. Downscale with BOX filter to remove outlines ---
             img = img.resize(
                 (width, height),
-                Image.BOX   # or Image.BILINEAR for slightly softer result
+                Image.BOX
             )
 
             img_tk = ImageTk.PhotoImage(img, master=window)
@@ -216,6 +211,12 @@ class Canvas:
 
     def ChangeIMGPos(object, newX, newY):
         object.place(x=newX, y=newY)
+    
+    def getImgPosX(img):
+        return img.winfo_x()
+    
+    def getImgPosY(img):
+        return img.winfo_y()
 
 class random:
 
@@ -248,11 +249,8 @@ class random:
 
 class sound:
     _active_processes = []
-    _converted_cache = {}   # maps original file → converted PCM file
+    _converted_cache = {}
 
-    # -------------------------------
-    #   CHECK IF WAV IS PCM 16-BIT
-    # -------------------------------
     @staticmethod
     def _is_pcm_wav(filepath):
         try:
@@ -260,13 +258,10 @@ class sound:
                 return w.getsampwidth() == 2 and w.getcomptype() == "NONE"
         except:
             return False
-
-    # -------------------------------
-    #   CONVERT WAV TO PCM 16-BIT
-    # -------------------------------
+        
     @staticmethod
     def _convert_to_pcm(input_file):
-        # Already converted?
+
         if input_file in sound._converted_cache:
             return sound._converted_cache[input_file]
 
