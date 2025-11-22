@@ -214,6 +214,9 @@ class Canvas:
             print("Error:", e)
             print("Please confirm the file is a .png or .jpg and the path is correct.")
 
+    def ChangeIMGPos(object, newX, newY):
+        object.place(x=newX, y=newY)
+
 class random:
 
     def Randomint(a, b):
@@ -368,7 +371,6 @@ canvas = Canvas.create_canvas(500, 500, "#000000", window_name, -2, 0)
 Canvas.draw_pixel(9, 9, "#ff0000", canvas, 50)
 Canvas.draw_pixel(0, 0, "#ff0000", canvas, 50)
 window.set_cursor("cross", window_name)
-window_name.config()
 
 mouse = Mouse(window_name)
 
@@ -405,8 +407,6 @@ button12 = gui.button("randomise screen", 200, 130, lambda: random.Screen(10, 50
 print(device.cpu_cores())
 print(device.plattform())
 
-
-
 slider = gui.slider(window_name, 0, 0, 100, 0, "horizontal")
 
 gui.disableSlider(slider, False)
@@ -414,13 +414,15 @@ gui.setSlider(slider, 50)
 gui.sliderStyle(slider, "#000000", "#ffffff", False)
 gui.pack(slider)
 
-Canvas.LoadImage("image.png", 0, 0, 200, 200, window_name)
+img2 = Canvas.LoadImage("image.png", 0, 0, 200, 200, window_name)
 
 while True:
+    Canvas.ChangeIMGPos(img2, random.Randomint(0, 500), random.Randomint(0, 500))
     #gui.setSlider(slider, 50)
-    print(gui.sliderValue(slider))
+    #print(gui.sliderValue(slider))
     window.update(window_name)
     mouse_X = mouse.get_X()
-    gui.SetLabelText(label2, str(mouse_X))
+    gui.SetLabelText(label2, str())
+    label2.pack()
     input.key(window_name, "w", kill)
     window.Title(window_name, str(window.getFPS()))
