@@ -1,7 +1,7 @@
 import random as r
 from tkinter import Tk, ttk
 import tkinter as tk
-import time, os, platform, string, numpy, subprocess, threading, wave
+import time, os, platform, string, subprocess, threading, wave
 from PIL import Image, ImageTk, ImageFilter
 
 class console:
