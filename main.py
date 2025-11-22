@@ -2,6 +2,7 @@ import random as r
 from tkinter import Tk, ttk
 import tkinter as tk
 import time, os, platform, string, numpy, subprocess, threading, wave
+from PIL import Image, ImageTk, ImageFilter
 
 class console:
     def clear():
@@ -70,12 +71,18 @@ class gui:
         variable2 = tk.IntVar(value = value)
         slider.config(variable=variable2)
 
-    def sliderStyle(slider, style):
-        ttk.Scale(style="")
+    def sliderStyle(slider, bg, fg, is_slider_vertical=False):
+        style = ttk.Style()
+        style.configure("TScale", background=bg, fg=fg, handle="#ffffff")
+        slider.config(style="TScale")
+        slider.pack()
 
 class window:
     def changeIcon(Window, ico_File):
-        Window.iconbitmap(ico_File)
+        try:
+            Window.iconbitmap(ico_File)
+        except:
+            print("could not load icon, maybe check its name and location ?")
     
     def getFPS(prev=[None]):
         now = time.perf_counter()
@@ -179,6 +186,34 @@ class Canvas:
         y *= grid_size
         return canvas.get(x, y)
 
+    def LoadImage(path, x, y, width, height, window):
+        try:
+            img = Image.open(path)
+
+            # --- 1. Upscale with nearest (sharpened pixel edges) ---
+            scale_factor = 4
+            img = img.resize(
+                (img.width * scale_factor, img.height * scale_factor),
+                Image.NEAREST
+            )
+
+            # --- 2. Downscale with BOX filter to remove outlines ---
+            img = img.resize(
+                (width, height),
+                Image.BOX   # or Image.BILINEAR for slightly softer result
+            )
+
+            img_tk = ImageTk.PhotoImage(img, master=window)
+
+            panel = tk.Label(window, image=img_tk, bd=0, highlightthickness=0)
+            panel.image = img_tk
+            panel.place(x=x, y=y)
+            return panel
+
+        except Exception as e:
+            print("Error:", e)
+            print("Please confirm the file is a .png or .jpg and the path is correct.")
+
 class random:
 
     def Randomint(a, b):
@@ -256,12 +291,8 @@ class sound:
             print(e.stderr.decode())
             return None
 
-    # -------------------------------
-    #   PLAYBACK (AUTO CONVERT)
-    # -------------------------------
     @staticmethod
     def _prepare_file(file):
-        # Only Windows requires PCM WAV
         if platform.system() == "Windows":
             if not sound._is_pcm_wav(file):
                 print("[INFO] Converting WAV to PCM for Windows...")
@@ -275,7 +306,7 @@ class sound:
         system = platform.system()
         file = sound._prepare_file(file)
 
-        if system == "Darwin":  # macOS
+        if system == "Darwin":
             return subprocess.Popen(["afplay", file])
 
         elif system == "Linux":
@@ -305,7 +336,6 @@ class sound:
 
     @staticmethod
     def StopAll():
-        # Mac & Linux processes
         for p in sound._active_processes:
             try:
                 p.terminate()
@@ -313,7 +343,6 @@ class sound:
                 pass
         sound._active_processes.clear()
 
-        # Windows winsound stop
         if platform.system() == "Windows":
             import winsound
             winsound.PlaySound(None, winsound.SND_PURGE)
@@ -361,10 +390,8 @@ button7 = gui.button("stop sound", 70, 200, lambda: sound.StopAll(), window_name
 
 gui.SetButtonSize(button3, 0, 10)
 
-try:
-    window.changeIcon(window_name, "icon.ico")
-except:
-    print("could not load icon, maybe check its name and location ?")
+
+window.changeIcon(window_name, "icon.ico")
 
 window.CursorVisible(window_name, True)
 window.AllowResize(window_name, True)
@@ -384,10 +411,13 @@ slider = gui.slider(window_name, 0, 0, 100, 0, "horizontal")
 
 gui.disableSlider(slider, False)
 gui.setSlider(slider, 50)
+gui.sliderStyle(slider, "#000000", "#ffffff", False)
+gui.pack(slider)
 
+Canvas.LoadImage("image.png", 0, 0, 200, 200, window_name)
 
 while True:
-    gui.setSlider(slider, 50)
+    #gui.setSlider(slider, 50)
     print(gui.sliderValue(slider))
     window.update(window_name)
     mouse_X = mouse.get_X()
