@@ -114,6 +114,9 @@ class window:
 
     def mainloop(Window):
         Window.mainloop()
+
+    def after(Window, function):
+        Window.after(1, function)
     
     def HideTitleBar(Window, boolean):
         Window.overrideredirect(boolean)
@@ -183,9 +186,11 @@ class Canvas:
         y *= grid_size
         return canvas.get(x, y)
 
-    def LoadImage(path, x, y, width, height, window):
+
+class image:
+    def Load(path, x, y, width, height, window):
         try:
-            img = Image.open(path)
+            img = Image.open(path).convert("RGBA")
 
             scale_factor = 4
             img = img.resize(
@@ -201,7 +206,10 @@ class Canvas:
             img_tk = ImageTk.PhotoImage(img, master=window)
 
             panel = tk.Label(window, image=img_tk, bd=0, highlightthickness=0)
-            panel.image = img_tk
+            panel.image = img_tk          # keep reference for Tk
+            panel.pil_image = img         # <-- store PIL image for rotation
+            panel.img_width = width       # <-- store size
+            panel.img_height = height
             panel.place(x=x, y=y)
             return panel
 
@@ -209,14 +217,42 @@ class Canvas:
             print("Error:", e)
             print("Please confirm the file is a .png or .jpg and the path is correct.")
 
-    def ChangeIMGPos(object, newX, newY):
+
+    def ChangePos(object, newX, newY):
         object.place(x=newX, y=newY)
     
-    def getImgPosX(img):
+    def getPosX(img):
         return img.winfo_x()
     
-    def getImgPosY(img):
+    def getPosY(img):
         return img.winfo_y()
+
+    def Rotate(panel, angle):
+        try:
+            # get the stored PIL image
+            pil_img = panel.pil_image
+
+            # rotate it
+            rotated = pil_img.rotate(angle, expand=False)
+
+            # ensure it stays at the same size
+            rotated = rotated.resize(
+                (panel.img_width, panel.img_height),
+                Image.BOX
+            )
+
+            # convert back to PhotoImage
+            img_tk = ImageTk.PhotoImage(rotated, master=panel.master)
+
+            # update label
+            panel.config(image=img_tk)
+            panel.image = img_tk      # keep reference
+            panel.pil_image = rotated # update stored PIL image
+
+        except Exception as e:
+            print("RotateImage error:", e)
+
+
 
 class random:
 
@@ -409,15 +445,16 @@ gui.setSlider(slider, 50)
 gui.sliderStyle(slider, "#000000", "#ffffff", False)
 gui.pack(slider)
 
-img2 = Canvas.LoadImage("image.png", 0, 0, 200, 200, window_name)
+img2 = image.Load("image.png", 0, 0, 200, 200, window_name)
+input.key(window_name, "w", kill)
 
-while True:
-    Canvas.ChangeIMGPos(img2, random.Randomint(0, 500), random.Randomint(0, 500))
-    #gui.setSlider(slider, 50)
-    #print(gui.sliderValue(slider))
-    window.update(window_name)
-    mouse_X = mouse.get_X()
-    gui.SetLabelText(label2, str())
-    label2.pack()
-    input.key(window_name, "w", kill)
+image.Rotate(img2, 0)
+
+def mainloop():  
     window.Title(window_name, str(window.getFPS()))
+    image.Rotate(img2, gui.sliderValue(slider))
+    window.after(window_name, mainloop)
+    image.Rotate(img2, 0)
+
+mainloop()
+window.mainloop(window_name)
