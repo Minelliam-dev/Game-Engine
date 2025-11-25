@@ -242,7 +242,7 @@ button5 = gui.button("change button defenition", 0, 150, lambda: gui.SetButtonFu
 
 gui.SetButtonSize(button3, 0, 10)
 
-window.changeIcon(window_name, "C:\\Users\\willi\\Desktop\\Poop engine\\library\\icon.ico")
+window.changeIcon(window_name, "icon.ico")
 window.HideTitleBar(window_name, True)
 window.CursorVisible(window_name, True)
 window.AllowResize(window_name, False)
