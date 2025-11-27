@@ -3,6 +3,7 @@ from tkinter import Tk, ttk
 import tkinter as tk
 import time, os, platform, string, subprocess, threading, wave
 from PIL import Image, ImageTk, ImageFilter
+from pathlib import Path
 
 class console:
     def clear():
@@ -77,10 +78,35 @@ class gui:
         slider.config(style="TScale")
         slider.pack()
 
+    def createTextInput(window, x, y, width, height, multi_line=False):
+        if multi_line:
+            text_box = tk.Text(window, height=height, width=width, )
+            text_box.pack(pady=10)
+            text_box.place(x=x, y=y)
+            return text_box
+        else:
+            entry = tk.Entry(window, width=width)
+            entry.pack(pady=10)
+            entry.place(x=x, y=y)
+            return entry
+
+    def getTextInput(entity, has_multiple_lines):
+        if has_multiple_lines == True:
+            return entity.get("1.0", tk.END)
+        if has_multiple_lines == False:
+            return entity.get()
+
 class window:
+    # --- Path helper for window-related file paths (like icons) ---
+    @staticmethod
+    def _resolve_path(relative_path: str) -> str:
+        base = Path(__file__).resolve().parent
+        return str((base / relative_path).resolve())
+
     def changeIcon(Window, ico_File):
         try:
-            Window.iconbitmap(ico_File)
+            full_path = window._resolve_path(ico_File)
+            Window.iconbitmap(full_path)
         except:
             print("could not load icon, maybe check its name and location ?")
     
@@ -144,6 +170,9 @@ class device:
     def plattform():
         return platform.system()
 
+    def current_location():
+        return os.path.abspath(__file__)
+
 class Mouse:
     def __init__(self, window):
         self.x = 0
@@ -186,11 +215,21 @@ class Canvas:
         y *= grid_size
         return canvas.get(x, y)
 
-
 class image:
+    # --- Path helper for image files ---
+    @staticmethod
+    def _resolve_path(relative_path: str) -> str:
+        base = Path(__file__).resolve().parent
+        return str((base / relative_path).resolve())
+
     def Load(path, x, y, width, height, window):
+        # Convert the given path into an absolute path relative to THIS file
+        full_path = image._resolve_path(path)   # path is a string like "textures/img.png"
+
+        print("Loading image from:", full_path)
+
         try:
-            img = Image.open(path).convert("RGBA")
+            img = Image.open(full_path).convert("RGBA")
 
             scale_factor = 4
             img = img.resize(
@@ -206,20 +245,25 @@ class image:
             img_tk = ImageTk.PhotoImage(img, master=window)
 
             panel = tk.Label(window, image=img_tk, bd=0, highlightthickness=0)
-            panel.image = img_tk          # keep reference for Tk
-            panel.pil_image = img         # <-- store PIL image for rotation
-            panel.img_width = width       # <-- store size
+            panel.image = img_tk          # must keep a reference for Tk
+            panel.pil_image = img         # store PIL image, e.g., for rotation later
+            panel.img_width = width
             panel.img_height = height
             panel.place(x=x, y=y)
+
             return panel
 
         except Exception as e:
             print("Error:", e)
-            print("Please confirm the file is a .png or .jpg and the path is correct.")
-
+            print("Please confirm the file is a .png or .jpg and that the path is correct.")
 
     def ChangePos(object, newX, newY):
-        object.place(x=newX, y=newY)
+        try:
+            object.place(x=newX, y=newY)
+        except Exception as e:
+            print("Error:", e)
+            print("could not place the object")
+            
     
     def getPosX(img):
         return img.winfo_x()
@@ -251,8 +295,6 @@ class image:
 
         except Exception as e:
             print("RotateImage error:", e)
-
-
 
 class random:
 
@@ -287,6 +329,14 @@ class sound:
     _active_processes = []
     _converted_cache = {}
 
+    # --- Path helper (same style as image & window) ---
+    @staticmethod
+    def _resolve_path(relative_path: str) -> str:
+        """Return absolute path relative to this file."""
+        base = Path(__file__).resolve().parent
+        return str((base / relative_path).resolve())
+
+    # --- WAV validation ---
     @staticmethod
     def _is_pcm_wav(filepath):
         try:
@@ -294,7 +344,8 @@ class sound:
                 return w.getsampwidth() == 2 and w.getcomptype() == "NONE"
         except:
             return False
-        
+
+    # --- Convert WAV to PCM for Windows ---
     @staticmethod
     def _convert_to_pcm(input_file):
 
@@ -317,57 +368,69 @@ class sound:
             subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
             sound._converted_cache[input_file] = output_file
             return output_file
+
         except FileNotFoundError:
             print("[ERROR] FFmpeg is not installed. Cannot convert WAV.")
             return None
+
         except subprocess.CalledProcessError as e:
             print("[FFmpeg Conversion Error]")
             print(e.stderr.decode())
             return None
 
+    # --- Ensure correct format (Windows) ---
     @staticmethod
-    def _prepare_file(file):
+    def _prepare_file(filepath):
+        filepath = sound._resolve_path(filepath)
+
         if platform.system() == "Windows":
-            if not sound._is_pcm_wav(file):
+            if not sound._is_pcm_wav(filepath):
                 print("[INFO] Converting WAV to PCM for Windows...")
-                converted = sound._convert_to_pcm(file)
+                converted = sound._convert_to_pcm(filepath)
                 if converted:
                     return converted
-        return file
 
+        return filepath
+
+    # --- Play one instance ---
     @staticmethod
-    def _play_once(file):
+    def _play_once(filepath):
         system = platform.system()
-        file = sound._prepare_file(file)
+        filepath = sound._prepare_file(filepath)
 
         if system == "Darwin":
-            return subprocess.Popen(["afplay", file])
+            return subprocess.Popen(["afplay", filepath])
 
         elif system == "Linux":
             try:
-                return subprocess.Popen(["aplay", file])
+                return subprocess.Popen(["aplay", filepath])
             except FileNotFoundError:
-                return subprocess.Popen(["paplay", file])
+                return subprocess.Popen(["paplay", filepath])
 
         elif system == "Windows":
             import winsound
-            winsound.PlaySound(file, winsound.SND_FILENAME | winsound.SND_ASYNC)
+            winsound.PlaySound(filepath, winsound.SND_FILENAME | winsound.SND_ASYNC)
             return None
 
+    # --- Play normally or loop ---
     @staticmethod
-    def play(file, loop=False):
-        def loop_play():
-            while True:
-                sound._play_once(file)
+    def play(filepath, loop=False):
 
         if loop:
+            def loop_play():
+                while True:
+                    sound._play_once(filepath)
+
             t = threading.Thread(target=loop_play, daemon=True)
             t.start()
-        else:
-            p = sound._play_once(file)
-            if p:
-                sound._active_processes.append(p)
+            return
 
+        # non-loop playback
+        p = sound._play_once(filepath)
+        if p:
+            sound._active_processes.append(p)
+
+    # --- Stop all sounds ---
     @staticmethod
     def StopAll():
         for p in sound._active_processes:
@@ -375,11 +438,13 @@ class sound:
                 p.terminate()
             except:
                 pass
+
         sound._active_processes.clear()
 
         if platform.system() == "Windows":
             import winsound
             winsound.PlaySound(None, winsound.SND_PURGE)
+
 
 # Example usage
 console.clear()
@@ -423,7 +488,6 @@ button7 = gui.button("stop sound", 70, 200, lambda: sound.StopAll(), window_name
 
 gui.SetButtonSize(button3, 0, 10)
 
-
 window.changeIcon(window_name, "icon.ico")
 
 window.CursorVisible(window_name, True)
@@ -450,11 +514,18 @@ input.key(window_name, "w", kill)
 
 image.Rotate(img2, 0)
 
+mouseX = mouse.get_X()
+mouseY = mouse.get_Y()
+
+text_input = gui.createTextInput(window_name, 0, 0, 30, 10, True)
+
 def mainloop():  
+    mouseX = mouse.get_X()
+    mouseY = mouse.get_Y()
     window.Title(window_name, str(window.getFPS()))
-    image.Rotate(img2, gui.sliderValue(slider))
+    image.ChangePos(img2, (mouseX + 1), (mouseY + 1))
     window.after(window_name, mainloop)
-    image.Rotate(img2, 0)
+    print(gui.getTextInput(text_input, True))
 
 mainloop()
 window.mainloop(window_name)
