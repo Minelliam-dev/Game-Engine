@@ -3,7 +3,6 @@ from tkinter import Tk, ttk
 import tkinter as tk
 import time, os, platform, string, subprocess, threading, wave
 from PIL import Image, ImageTk, ImageFilter
-from pathlib import Path
 
 class console:
     def clear():
@@ -100,8 +99,8 @@ class window:
     # --- Path helper for window-related file paths (like icons) ---
     @staticmethod
     def _resolve_path(relative_path: str) -> str:
-        base = Path(__file__).resolve().parent
-        return str((base / relative_path).resolve())
+        base = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(base, relative_path)
 
     def changeIcon(Window, ico_File):
         try:
@@ -129,8 +128,8 @@ class window:
         return window
 
     def set_cursor(new_cursor, Window):
-        window = Window
-        window.config(cursor=new_cursor)
+        window_obj = Window
+        window_obj.config(cursor=new_cursor)
 
     def close(Window):
         Window.destroy()
@@ -219,8 +218,8 @@ class image:
     # --- Path helper for image files ---
     @staticmethod
     def _resolve_path(relative_path: str) -> str:
-        base = Path(__file__).resolve().parent
-        return str((base / relative_path).resolve())
+        base = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(base, relative_path)
 
     def Load(path, x, y, width, height, window):
         # Convert the given path into an absolute path relative to THIS file
@@ -333,8 +332,8 @@ class sound:
     @staticmethod
     def _resolve_path(relative_path: str) -> str:
         """Return absolute path relative to this file."""
-        base = Path(__file__).resolve().parent
-        return str((base / relative_path).resolve())
+        base = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(base, relative_path)
 
     # --- WAV validation ---
     @staticmethod
