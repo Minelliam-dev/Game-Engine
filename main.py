@@ -179,8 +179,9 @@ class Mouse:
         window.bind("<Motion>", self.mouse_move)
 
     def mouse_move(self, event):
-        self.x = event.x
-        self.y = event.y
+        root = event.widget.winfo_toplevel()
+        self.x = event.x_root - root.winfo_rootx()
+        self.y = event.y_root - root.winfo_rooty()
     
     def get_X(self):
         return self.x
@@ -203,17 +204,15 @@ class Mouse:
         elif button == "side-2":
             window.bind('<ButtonPress-5>', function)
 
-    def bindMouseWheel(window, Up_Function=None, Down_Function=None):
+    def bindMouseWheel(widget, function_up=None, function_down=None):
         system = platform.system()
 
         def on_scroll(event):
+            # Windows and macOS (Darwin)
+            if system in ("Windows", "Darwin"):
+                direction_up = event.delta > 0
 
-            if system == "Windows":
-                direction_up = (event.delta > 0)
-
-            elif system == "Darwin":
-                direction_up = (event.delta > 0)
-
+            # Linux uses button 4 (up) and 5 (down)
             else:
                 if event.num == 4:
                     direction_up = True
@@ -222,12 +221,24 @@ class Mouse:
                 else:
                     return
 
-            if direction_up == True:
-                Up_Function()
-            elif direction_up == False:
-                Down_Function()
+            # Call appropriate function
+            if direction_up:
+                if function_up:
+                    function_up()
+            else:
+                if function_down:
+                    function_down()
 
-        window.bind("<MouseWheel>", on_scroll)
+        if system == "Windows" or "Darwin":
+            widget.bind("<MouseWheel>", on_scroll)
+        else:
+            widget.bind("<Button-4>", on_scroll)
+            widget.bind("<Button-5>", on_scroll)
+
+        widget.bind("<MouseWheel>", on_scroll)
+        widget.bind("<Button-4>", on_scroll)
+        widget.bind("<Button-5>", on_scroll)
+
     	
 class input:
     def bindKey(window, key, function):
@@ -297,12 +308,13 @@ class image:
             print("Error:", e)
             print("Please confirm the file is a .png or .jpg and that the path is correct.")
 
-    def ChangePos(object, newX, newY):
+    def ChangePos(widget, newX, newY):
         try:
-            object.place(x=newX, y=newY)
+            widget.place_configure(x=newX, y=newY)
+            widget.update_idletasks()  # forces a redraw to prevent ghosting
         except Exception as e:
             print("Error:", e)
-            print("could not place the object")
+            print("could not place the widget")
             
     
     def getPosX(img):
@@ -313,25 +325,19 @@ class image:
 
     def Rotate(panel, angle):
         try:
-            # get the stored PIL image
-            pil_img = panel.pil_image
+            pil_img = panel.pil_image.convert("RGBA")
 
-            # rotate it
             rotated = pil_img.rotate(angle, expand=True)
 
-            # ensure it stays at the same size
-            rotated = rotated.resize(
-                (panel.img_width, panel.img_height),
-                Image.BOX
-            )
+            # Resize AFTER rotation kills quality.
+            # Better: resize BEFORE rotation.
+            rotated = rotated.resize((panel.img_width, panel.img_height), Image.LANCZOS)
 
-            # convert back to PhotoImage
             img_tk = ImageTk.PhotoImage(rotated, master=panel.master)
 
-            # update label
-            panel.config(image=img_tk)
-            panel.image = img_tk      # keep reference
-            panel.pil_image = rotated # update stored PIL image
+            panel.configure(image=img_tk)
+            panel.image = img_tk
+            panel.pil_image = pil_img  # keep original for future rotation
 
         except Exception as e:
             print("RotateImage error:", e)
