@@ -203,7 +203,7 @@ class Mouse:
         elif button == "side-2":
             window.bind('<ButtonPress-5>', function)
 
-    def bindMouseWheel(window, Function, directionIsUp=True):
+    def bindMouseWheel(window, Up_Function=None, Down_Function=None):
         system = platform.system()
 
         def on_scroll(event):
@@ -222,10 +222,10 @@ class Mouse:
                 else:
                     return
 
-            if directionIsUp == direction_up:
-                Function()
-            else:
-                return
+            if direction_up == True:
+                Up_Function()
+            elif direction_up == False:
+                Down_Function()
 
         window.bind("<MouseWheel>", on_scroll)
     	
@@ -562,7 +562,8 @@ text_input = gui.createTextInput(window_name, 300, 0, 30, 10, True)
 
 #Mouse.bindMotion(window_name, test)
 #Mouse.bindClick(window_name, "right", test2)
-Mouse.bindMouseWheel(window_name, test2, False)
+
+Mouse.bindMouseWheel(window_name, print("up"), print("down"))
 
 image.Rotate(img2, 10)
 
