@@ -188,8 +188,49 @@ class Mouse:
     def get_Y(self):
         return self.y
 
+    def bindMotion(window, function):
+        window.bind("<Motion>", function)
+
+    def bindClick(window, button, function):
+        if button == "left":
+            window.bind('<ButtonPress-1>', function)
+        elif button == "middle":
+            window.bind('<ButtonPress-2>', function)
+        elif button == "right":
+            window.bind('<ButtonPress-3>', function)
+        elif button == "side-1":
+            window.bind('<ButtonPress-4>', function)
+        elif button == "side-2":
+            window.bind('<ButtonPress-5>', function)
+
+    def bindMouseWheel(window, Function, directionIsUp=True):
+        system = platform.system()
+
+        def on_scroll(event):
+
+            if system == "Windows":
+                direction_up = (event.delta > 0)
+
+            elif system == "Darwin":
+                direction_up = (event.delta > 0)
+
+            else:
+                if event.num == 4:
+                    direction_up = True
+                elif event.num == 5:
+                    direction_up = False
+                else:
+                    return
+
+            if directionIsUp == direction_up:
+                Function()
+            else:
+                return
+
+        window.bind("<MouseWheel>", on_scroll)
+    	
 class input:
-    def key(window, key, function):
+    def bindKey(window, key, function):
         window.bind(f"<KeyPress-{key}>", function)
 
 class Canvas:
@@ -276,7 +317,7 @@ class image:
             pil_img = panel.pil_image
 
             # rotate it
-            rotated = pil_img.rotate(angle, expand=False)
+            rotated = pil_img.rotate(angle, expand=True)
 
             # ensure it stays at the same size
             rotated = rotated.resize(
@@ -473,6 +514,7 @@ print_FPS = True
 print_mouseX = True
 
 def test(event): print("test")
+def test2(): print("test2")
 
 def kill(event): window.close(window_name)
 
@@ -509,22 +551,28 @@ gui.sliderStyle(slider, "#000000", "#ffffff", False)
 gui.pack(slider)
 
 img2 = image.Load("image.png", 0, 0, 200, 200, window_name)
-input.key(window_name, "w", kill)
+input.bindKey(window_name, "w", kill)
 
 image.Rotate(img2, 0)
 
 mouseX = mouse.get_X()
 mouseY = mouse.get_Y()
 
-text_input = gui.createTextInput(window_name, 0, 0, 30, 10, True)
+text_input = gui.createTextInput(window_name, 300, 0, 30, 10, True)
+
+#Mouse.bindMotion(window_name, test)
+#Mouse.bindClick(window_name, "right", test2)
+Mouse.bindMouseWheel(window_name, test2, False)
+
+image.Rotate(img2, 10)
 
 def mainloop():  
     mouseX = mouse.get_X()
     mouseY = mouse.get_Y()
     window.Title(window_name, str(window.getFPS()))
-    image.ChangePos(img2, (mouseX + 1), (mouseY + 1))
+    Mouse.bindMotion(window_name, image.ChangePos(img2, (mouseX + 1), (mouseY + 1)))
     window.after(window_name, mainloop)
-    print(gui.getTextInput(text_input, True))
+    #print(gui.getTextInput(text_input, True))
 
 mainloop()
 window.mainloop(window_name)
