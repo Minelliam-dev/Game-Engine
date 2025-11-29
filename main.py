@@ -235,7 +235,6 @@ class Mouse:
         else:
             widget.bind("<Button-4>", on_scroll)  # Scroll up
             widget.bind("<Button-5>", on_scroll)  # Scroll down
-
     	
 class input:
     def bindKey(window, key, function):
@@ -488,6 +487,78 @@ class sound:
             import winsound
             winsound.PlaySound(None, winsound.SND_PURGE)
 
+class data:
+    def create(path, extension):
+        def _resolve_path(relative_path: str) -> str:
+            base = os.path.dirname(os.path.abspath(__file__))
+            return os.path.join(base, relative_path)
+        path2 = _resolve_path(path) + extension
+        
+        
+        with open(path2, "w") as f:
+            f.write("Hello, world!")
+
+    def write(file_path, content):
+        def _resolve_path(relative_path: str) -> str:
+            base = os.path.dirname(os.path.abspath(__file__))
+            return os.path.join(base, relative_path)
+        path2 = _resolve_path(file_path)
+        
+        
+        with open(path2, "w") as f:
+            f.write(content)
+
+    def read(file_path, amount_of_chars):
+        def _resolve_path(relative_path: str) -> str:
+            base = os.path.dirname(os.path.abspath(__file__))
+            return os.path.join(base, relative_path)
+        path2 = _resolve_path(file_path)
+        
+        
+        with open(path2, "r") as f:
+            content = f.read()
+        return content
+    
+    def createFolder(name):
+        try:
+            def _resolve_path(relative_path: str) -> str:
+                base = os.path.dirname(os.path.abspath(__file__))
+                return os.path.join(base, relative_path)
+
+            path2 = _resolve_path(name)
+            
+
+            os.mkdir(path2)
+        except Exception as e:
+            print(e)
+
+    def getFolderExists(path):
+        try:
+            def _resolve_path(relative_path: str) -> str:
+                base = os.path.dirname(os.path.abspath(__file__))
+                return os.path.join(base, relative_path)
+
+            path2 = _resolve_path(path)
+            
+
+            if os.path.exists(path2):
+                return True
+            else:
+                return False
+        except Exception as e:
+            print(e)
+
+    def readLine(file_path, line):
+        def _resolve_path(relative_path: str) -> str:
+            base = os.path.dirname(os.path.abspath(__file__))
+            return os.path.join(base, relative_path)
+        path2 = _resolve_path(file_path)
+        
+        
+        with open(path2, "r") as f:
+            content = f.read()
+        return content
+
 
 # Example usage
 console.clear()
@@ -571,12 +642,19 @@ Mouse.bindMouseWheel(window_name, test2, test3)
 
 image.Rotate(img2, 10)
 
+data.create("test", ".txt")
+data.write("test.txt", "test")
+print(data.read("test.txt", 7))
+if data.getFolderExists("test2") != True:
+    data.createFolder("test2")
+
+
 def mainloop():  
     mouseX = mouse.get_X()
     mouseY = mouse.get_Y()
     window.Title(window_name, str(window.getFPS()))
     Mouse.bindMotion(window_name, image.ChangePos(img2, (mouseX + 1), (mouseY + 1)))
-    random.Screen(10, 50, window_name)
+    #random.Screen(10, 50, window_name)
     window.after(window_name, mainloop)
     #print(gui.getTextInput(text_input, True))
 
