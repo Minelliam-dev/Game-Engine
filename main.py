@@ -219,7 +219,7 @@ class Mouse:
                 elif event.num == 5:
                     direction_up = False
                 else:
-                    return
+                    return  # Ignore other events
 
             # Call appropriate function
             if direction_up:
@@ -229,15 +229,12 @@ class Mouse:
                 if function_down:
                     function_down()
 
-        if system == "Windows" or "Darwin":
+        # FIXED: must check explicitly using `in`
+        if system in ("Windows", "Darwin"):
             widget.bind("<MouseWheel>", on_scroll)
         else:
-            widget.bind("<Button-4>", on_scroll)
-            widget.bind("<Button-5>", on_scroll)
-
-        widget.bind("<MouseWheel>", on_scroll)
-        widget.bind("<Button-4>", on_scroll)
-        widget.bind("<Button-5>", on_scroll)
+            widget.bind("<Button-4>", on_scroll)  # Scroll up
+            widget.bind("<Button-5>", on_scroll)  # Scroll down
 
     	
 class input:
@@ -520,7 +517,8 @@ print_FPS = True
 print_mouseX = True
 
 def test(event): print("test")
-def test2(): print("test2")
+def test2(): print("test")
+def test3(): print("test2")
 
 def kill(event): window.close(window_name)
 
@@ -569,7 +567,7 @@ text_input = gui.createTextInput(window_name, 300, 0, 30, 10, True)
 #Mouse.bindMotion(window_name, test)
 #Mouse.bindClick(window_name, "right", test2)
 
-Mouse.bindMouseWheel(window_name, print("up"), print("down"))
+Mouse.bindMouseWheel(window_name, test2, test3)
 
 image.Rotate(img2, 10)
 
@@ -578,8 +576,10 @@ def mainloop():
     mouseY = mouse.get_Y()
     window.Title(window_name, str(window.getFPS()))
     Mouse.bindMotion(window_name, image.ChangePos(img2, (mouseX + 1), (mouseY + 1)))
+    random.Screen(10, 50, window_name)
     window.after(window_name, mainloop)
     #print(gui.getTextInput(text_input, True))
+
 
 mainloop()
 window.mainloop(window_name)
