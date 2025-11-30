@@ -262,82 +262,6 @@ class Canvas:
         y *= grid_size
         return canvas.get(x, y)
 
-class image:
-    # --- Path helper for image files ---
-    @staticmethod
-    def _resolve_path(relative_path: str) -> str:
-        base = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(base, relative_path)
-
-    def Load(path, x, y, width, height, window):
-        # Convert the given path into an absolute path relative to THIS file
-        full_path = image._resolve_path(path)   # path is a string like "textures/img.png"
-
-        print("Loading image from:", full_path)
-
-        try:
-            img = Image.open(full_path).convert("RGBA")
-
-            scale_factor = 4
-            img = img.resize(
-                (img.width * scale_factor, img.height * scale_factor),
-                Image.NEAREST
-            )
-
-            img = img.resize(
-                (width, height),
-                Image.BOX
-            )
-
-            img_tk = ImageTk.PhotoImage(img, master=window)
-
-            panel = tk.Label(window, image=img_tk, bd=0, highlightthickness=0)
-            panel.image = img_tk          # must keep a reference for Tk
-            panel.pil_image = img         # store PIL image, e.g., for rotation later
-            panel.img_width = width
-            panel.img_height = height
-            panel.place(x=x, y=y)
-
-            return panel
-
-        except Exception as e:
-            print("Error:", e)
-            print("Please confirm the file is a .png or .jpg and that the path is correct.")
-
-    def ChangePos(widget, newX, newY):
-        try:
-            widget.place_configure(x=newX, y=newY)
-            widget.update_idletasks()  # forces a redraw to prevent ghosting
-        except Exception as e:
-            print("Error:", e)
-            print("could not place the widget")
-            
-    
-    def getPosX(img):
-        return img.winfo_x()
-    
-    def getPosY(img):
-        return img.winfo_y()
-
-    def Rotate(panel, angle):
-        try:
-            pil_img = panel.pil_image.convert("RGBA")
-
-            rotated = pil_img.rotate(angle, expand=True)
-
-            # Resize AFTER rotation kills quality.
-            # Better: resize BEFORE rotation.
-            rotated = rotated.resize((panel.img_width, panel.img_height), Image.LANCZOS)
-
-            img_tk = ImageTk.PhotoImage(rotated, master=panel.master)
-
-            panel.configure(image=img_tk)
-            panel.image = img_tk
-            panel.pil_image = pil_img  # keep original for future rotation
-
-        except Exception as e:
-            print("RotateImage error:", e)
-
 class random:
 
     def Randomint(a, b):
@@ -548,6 +472,22 @@ class data:
         except Exception as e:
             print(e)
 
+    def getFileExists(path):
+        try:
+            def _resolve_path(relative_path: str) -> str:
+                base = os.path.dirname(os.path.abspath(__file__))
+                return os.path.join(base, relative_path)
+
+            path2 = _resolve_path(path)
+            
+
+            if os.path.exists(path2):
+                return True
+            else:
+                return False
+        except:
+            return
+    
     def readLine(file_path, line):
         def _resolve_path(relative_path: str) -> str:
             base = os.path.dirname(os.path.abspath(__file__))
@@ -558,6 +498,83 @@ class data:
         with open(path2, "r") as f:
             content = f.read()
         return content
+
+class image:
+    # --- Path helper for image files ---
+    @staticmethod
+    def _resolve_path(relative_path: str) -> str:
+        base = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(base, relative_path)
+
+    def Load(path, x, y, width, height, window):
+        # Convert the given path into an absolute path relative to THIS file
+        full_path = image._resolve_path(path)   # path is a string like "textures/img.png"
+
+        print("Loading image from:", full_path)
+
+        try:
+            img = Image.open(full_path).convert("RGBA")
+
+            scale_factor = 4
+            img = img.resize(
+                (img.width * scale_factor, img.height * scale_factor),
+                Image.NEAREST
+            )
+
+            img = img.resize(
+                (width, height),
+                Image.BOX
+            )
+
+            img_tk = ImageTk.PhotoImage(img, master=window)
+
+            panel = tk.Label(window, image=img_tk, bd=0, highlightthickness=0)
+            panel.image = img_tk          # must keep a reference for Tk
+            panel.pil_image = img         # store PIL image, e.g., for rotation later
+            panel.img_width = width
+            panel.img_height = height
+            panel.place(x=x, y=y)
+
+            return panel
+
+        except Exception as e:
+            print("Error:", e)
+            print("Please confirm the file is a .png or .jpg and that the path is correct.")
+
+    def ChangePos(widget, newX, newY):
+        try:
+            widget.place_configure(x=newX, y=newY)
+            widget.update_idletasks()  # forces a redraw to prevent ghosting
+        except Exception as e:
+            print("Error:", e)
+            print("could not place the widget")
+            
+    
+    def getPosX(img):
+        return img.winfo_x()
+    
+    def getPosY(img):
+        return img.winfo_y()
+
+    def Rotate(panel, angle):
+        try:
+            pil_img = panel.pil_image.convert("RGBA")
+
+            rotated = pil_img.rotate(angle, expand=True)
+
+            # Resize AFTER rotation kills quality.
+            # Better: resize BEFORE rotation.
+            rotated = rotated.resize((panel.img_width, panel.img_height), Image.LANCZOS)
+
+            img_tk = ImageTk.PhotoImage(rotated, master=panel.master)
+
+            panel.configure(image=img_tk)
+            panel.image = img_tk
+            panel.pil_image = pil_img  # keep original for future rotation
+
+        except Exception as e:
+            print("RotateImage error:", e)
+
 
 
 # Example usage
@@ -643,13 +660,13 @@ Mouse.bindMouseWheel(window_name, test2, test3)
 image.Rotate(img2, 10)
 
 data.create("test", ".txt")
-data.write("test.txt", "test")
+data.write("test.txt", str(data.read("test.txt", 10)) + "test")
 print(data.read("test.txt", 7))
-if data.getFolderExists("test2") != True:
+if data.getFolderExists("test2") == False:
     data.createFolder("test2")
 
 
-def mainloop():  
+def mainloop():
     mouseX = mouse.get_X()
     mouseY = mouse.get_Y()
     window.Title(window_name, str(window.getFPS()))
