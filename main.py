@@ -5,12 +5,13 @@ import time, os, platform, string, subprocess, threading, wave
 from PIL import Image, ImageTk, ImageFilter
 
 class console:
+     
     def clear():
         if platform.system() == "Windows":
             os.system("cls")
         else:
            os.system("clear")
-
+     
     def color_print(color, text):
         if (color == "red"): print('\033[31m' + str(text) + '\033[0m')
         if (color == "green"): print('\033[32m' + str(text) + '\033[0m')
@@ -22,6 +23,7 @@ class console:
         if (color == "gray"): print('\033[30m' + str(text) + '\033[0m')
 
 class gui:
+     
     def label(text, Window, backgroundColor=None, foregroundColor="black", x=0, y=0):
         kwargs = {"text": text, "foreground": foregroundColor}
         if backgroundColor is not None:
@@ -32,6 +34,7 @@ class gui:
     
         return label
 
+     
     def button(text, x, y, function, Window, theme):
         if theme == "light":
             button = tk.Button(Window, text=text, command=function, anchor="center")
@@ -41,42 +44,52 @@ class gui:
         button.place(x=x, y=y)
         return button
 
+     
     def pack(asset):
         asset.pack()
 
+     
     def SetButtonSize(Button, height, width):
         Button.config(height=height, width=width)
     
+     
     def SetLabelText(Label, new_text):
         Label.config(text=new_text)
     
+     
     def SetButtonFunction(Button, function):
         Button.config(command=function)
     
+     
     def slider(Window, x, y, max_value, min_value, orientation="horizontal"):
         cale2 = ttk.Scale(Window, from_=min_value, to=max_value, orient=orientation, style="")
         cale2.place(x=x, y=y)
         return cale2
 
+     
     def sliderValue(slider):
         return int(slider.get())
     
+     
     def disableSlider(slider, boolean=True):
         if boolean:
             slider['state'] = 'disabled'
         else:
             slider['state'] = 'normal'
 
+     
     def setSlider(slider, value):
         variable2 = tk.IntVar(value = value)
         slider.config(variable=variable2)
 
+     
     def sliderStyle(slider, bg, fg, is_slider_vertical=False):
         style = ttk.Style()
         style.configure("TScale", background=bg, fg=fg, handle="#ffffff")
         slider.config(style="TScale")
         slider.pack()
 
+     
     def createTextInput(window, x, y, width, height, multi_line=False):
         if multi_line:
             text_box = tk.Text(window, height=height, width=width, )
@@ -89,6 +102,7 @@ class gui:
             entry.place(x=x, y=y)
             return entry
 
+     
     def getTextInput(entity, has_multiple_lines):
         if has_multiple_lines == True:
             return entity.get("1.0", tk.END)
@@ -165,7 +179,7 @@ class window:
 class device:
     def cpu_cores():
         return os.cpu_count()
-    
+
     def plattform():
         return platform.system()
 
@@ -182,7 +196,7 @@ class Mouse:
         root = event.widget.winfo_toplevel()
         self.x = event.x_root - root.winfo_rootx()
         self.y = event.y_root - root.winfo_rooty()
-    
+
     def get_X(self):
         return self.x
 
@@ -206,7 +220,6 @@ class Mouse:
 
     def bindMouseWheel(widget, function_up=None, function_down=None):
         system = platform.system()
-
         def on_scroll(event):
             # Windows and macOS (Darwin)
             if system in ("Windows", "Darwin"):
@@ -263,7 +276,7 @@ class Canvas:
         return canvas.get(x, y)
 
 class random:
-
+     
     def Randomint(a, b):
         return r.randint(a, b)
 
@@ -276,7 +289,7 @@ class random:
         color = f"#{r.randint(0,255):02x}{r.randint(0,255):02x}{r.randint(0,255):02x}"
         return color
 
-    def Screen(GRID_SIZE, PIXEL_SIZE, Window):
+    def Screen(GRID_SIZE, PIXEL_SIZE, canvas, Window):
         for t in range(GRID_SIZE):
             for i in range(GRID_SIZE):
                 color = f"#{r.randint(0,255):02x}{r.randint(0,255):02x}{r.randint(0,255):02x}"
@@ -285,6 +298,8 @@ class random:
                 Canvas.draw_pixel(x, y, color, canvas, PIXEL_SIZE)
         window.update(Window)
 
+
+     
     def Letter(amount):
         result = ""
         for i in range(amount):
@@ -297,6 +312,7 @@ class sound:
 
     # --- Path helper (same style as image & window) ---
     @staticmethod
+     
     def _resolve_path(relative_path: str) -> str:
         """Return absolute path relative to this file."""
         base = os.path.dirname(os.path.abspath(__file__))
@@ -304,6 +320,7 @@ class sound:
 
     # --- WAV validation ---
     @staticmethod
+     
     def _is_pcm_wav(filepath):
         try:
             with wave.open(filepath, "rb") as w:
@@ -313,6 +330,7 @@ class sound:
 
     # --- Convert WAV to PCM for Windows ---
     @staticmethod
+     
     def _convert_to_pcm(input_file):
 
         if input_file in sound._converted_cache:
@@ -346,6 +364,7 @@ class sound:
 
     # --- Ensure correct format (Windows) ---
     @staticmethod
+     
     def _prepare_file(filepath):
         filepath = sound._resolve_path(filepath)
 
@@ -360,6 +379,7 @@ class sound:
 
     # --- Play one instance ---
     @staticmethod
+     
     def _play_once(filepath):
         system = platform.system()
         filepath = sound._prepare_file(filepath)
@@ -380,6 +400,7 @@ class sound:
 
     # --- Play normally or loop ---
     @staticmethod
+     
     def play(filepath, loop=False):
 
         if loop:
@@ -398,6 +419,7 @@ class sound:
 
     # --- Stop all sounds ---
     @staticmethod
+     
     def StopAll():
         for p in sound._active_processes:
             try:
@@ -412,6 +434,7 @@ class sound:
             winsound.PlaySound(None, winsound.SND_PURGE)
 
 class data:
+     
     def create(path, extension):
         def _resolve_path(relative_path: str) -> str:
             base = os.path.dirname(os.path.abspath(__file__))
@@ -422,6 +445,7 @@ class data:
         with open(path2, "w") as f:
             f.write("Hello, world!")
 
+     
     def write(file_path, content):
         def _resolve_path(relative_path: str) -> str:
             base = os.path.dirname(os.path.abspath(__file__))
@@ -432,6 +456,7 @@ class data:
         with open(path2, "w") as f:
             f.write(content)
 
+     
     def read(file_path, amount_of_chars):
         def _resolve_path(relative_path: str) -> str:
             base = os.path.dirname(os.path.abspath(__file__))
@@ -443,6 +468,7 @@ class data:
             content = f.read()
         return content
     
+     
     def createFolder(name):
         try:
             def _resolve_path(relative_path: str) -> str:
@@ -456,6 +482,7 @@ class data:
         except Exception as e:
             print(e)
 
+     
     def getFolderExists(path):
         try:
             def _resolve_path(relative_path: str) -> str:
@@ -472,6 +499,7 @@ class data:
         except Exception as e:
             print(e)
 
+     
     def getFileExists(path):
         try:
             def _resolve_path(relative_path: str) -> str:
@@ -488,6 +516,7 @@ class data:
         except:
             return
     
+     
     def readLine(file_path, line):
         def _resolve_path(relative_path: str) -> str:
             base = os.path.dirname(os.path.abspath(__file__))
@@ -502,10 +531,12 @@ class data:
 class image:
     # --- Path helper for image files ---
     @staticmethod
+     
     def _resolve_path(relative_path: str) -> str:
         base = os.path.dirname(os.path.abspath(__file__))
         return os.path.join(base, relative_path)
 
+     
     def Load(path, x, y, width, height, window):
         # Convert the given path into an absolute path relative to THIS file
         full_path = image._resolve_path(path)   # path is a string like "textures/img.png"
@@ -541,6 +572,7 @@ class image:
             print("Error:", e)
             print("Please confirm the file is a .png or .jpg and that the path is correct.")
 
+     
     def ChangePos(widget, newX, newY):
         try:
             widget.place_configure(x=newX, y=newY)
@@ -549,13 +581,15 @@ class image:
             print("Error:", e)
             print("could not place the widget")
             
-    
+     
     def getPosX(img):
         return img.winfo_x()
     
+     
     def getPosY(img):
         return img.winfo_y()
 
+     
     def Rotate(panel, angle):
         try:
             pil_img = panel.pil_image.convert("RGBA")
@@ -589,12 +623,12 @@ console.color_print("cyan", "cyan")
 console.color_print("gray", random.Letter(50))
 console.color_print("blue", str(random.Randomfloat(0, 1)))
 
-window_name = window.new_window(500, 500, "test")
+window_name = window.new_window(1000, 1000, "test")
 label1 = gui.label("test", window_name, None, "green", 1, 1)
 label2 = gui.label("mouse", window_name, None, "black", 1, 1)
 gui.pack(label1)
 
-canvas = Canvas.create_canvas(500, 500, "#000000", window_name, -2, 0)
+canvas = Canvas.create_canvas(1000, 1000, "#000000", window_name, -2, 0)
 Canvas.draw_pixel(9, 9, "#ff0000", canvas, 50)
 Canvas.draw_pixel(0, 0, "#ff0000", canvas, 50)
 window.set_cursor("cross", window_name)
@@ -671,7 +705,7 @@ def mainloop():
     mouseY = mouse.get_Y()
     window.Title(window_name, str(window.getFPS()))
     Mouse.bindMotion(window_name, image.ChangePos(img2, (mouseX + 1), (mouseY + 1)))
-    #random.Screen(10, 50, window_name)
+    random.Screen(100, 50, canvas, window_name)
     window.after(window_name, mainloop)
     #print(gui.getTextInput(text_input, True))
 
