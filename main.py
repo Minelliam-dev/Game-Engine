@@ -3,8 +3,6 @@ from tkinter import Tk, ttk
 import tkinter as tk
 import time, os, platform, string, subprocess, threading, wave
 from PIL import Image, ImageTk, ImageFilter
-from numba import njit
-import numpy as np
 
 class console:
      
