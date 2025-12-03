@@ -3,6 +3,8 @@ from tkinter import Tk, ttk
 import tkinter as tk
 import time, os, platform, string, subprocess, threading, wave
 from PIL import Image, ImageTk, ImageFilter
+from numba import njit
+import numpy as np
 
 class console:
      
@@ -249,9 +251,46 @@ class Mouse:
             widget.bind("<Button-4>", on_scroll)  # Scroll up
             widget.bind("<Button-5>", on_scroll)  # Scroll down
     	
-class input:
-    def bindKey(window, key, function):
-        window.bind(f"<KeyPress-{key}>", function)
+class Input:
+    keys_held = set()
+    callbacks = {}
+
+    @staticmethod
+    def bindKey(window, key, function, repeat_ms=16):
+        """
+        key: key name like "Escape", "space", "Left", "Control_L", "a", "Return"...
+        function: function to run while key is held
+        """
+
+        # save callback
+        Input.callbacks[key] = (function, repeat_ms)
+
+        # global event bindings (press + release)
+        window.bind("<KeyPress>", Input._on_press)
+        window.bind("<KeyRelease>", Input._on_release)
+
+        # Start loop once
+        if not hasattr(Input, "_loop_started"):
+            Input._loop_started = True
+            Input._loop(window)
+
+    @staticmethod
+    def _on_press(event):
+        Input.keys_held.add(event.keysym)
+
+    @staticmethod
+    def _on_release(event):
+        if event.keysym in Input.keys_held:
+            Input.keys_held.remove(event.keysym)
+
+    @staticmethod
+    def _loop(window):
+        for key in list(Input.keys_held):
+            if key in Input.callbacks:
+                func, _ = Input.callbacks[key]
+                func()
+
+        window.after(16, lambda: Input._loop(window))
 
 class Canvas:
     def create_canvas(width, height, Background, window, x, y):
@@ -290,16 +329,26 @@ class random:
         return color
 
     def Screen(GRID_SIZE, PIXEL_SIZE, canvas, Window):
-        for t in range(GRID_SIZE):
-            for i in range(GRID_SIZE):
-                color = f"#{r.randint(0,255):02x}{r.randint(0,255):02x}{r.randint(0,255):02x}"
-                x = (i)
-                y = (t)
-                Canvas.draw_pixel(x, y, color, canvas, PIXEL_SIZE)
-        window.update(Window)
+        rand = random.Randomint # Local reference (faster)
 
+        # Precompute coordinates to avoid repeated multiplication
+        coords = [
+            (x * PIXEL_SIZE, y * PIXEL_SIZE)
+            for y in range(GRID_SIZE)
+            for x in range(GRID_SIZE)
+        ]
 
-     
+        for (x2, y2) in coords:
+            r = rand(0, 255)
+            g = rand(0, 255)
+            b = rand(0, 255)
+
+            # Fast hex color
+            color = f"#{r:02x}{g:02x}{b:02x}"
+
+            # Put pixel block
+            canvas.put(color, to=(x2, y2, x2 + PIXEL_SIZE, y2 + PIXEL_SIZE))
+
     def Letter(amount):
         result = ""
         for i in range(amount):
@@ -642,7 +691,7 @@ def test(event): print("test")
 def test2(): print("test")
 def test3(): print("test2")
 
-def kill(event): window.close(window_name)
+def kill(): window.close(window_name)
 
 def set_text(event): gui.SetLabelText(label1, "testtttttt")
 
@@ -677,7 +726,11 @@ gui.sliderStyle(slider, "#000000", "#ffffff", False)
 gui.pack(slider)
 
 img2 = image.Load("image.png", 0, 0, 200, 200, window_name)
-input.bindKey(window_name, "w", kill)
+img3 = image.Load("image.png", 0, 0, 200, 200, window_name)
+def move(): image.ChangePos(img3, image.getPosX(img3), image.getPosY(img3) + 2)
+
+Input.bindKey(window_name, "w", kill)
+Input.bindKey(window_name, "s", move)
 
 image.Rotate(img2, 0)
 
@@ -705,7 +758,7 @@ def mainloop():
     mouseY = mouse.get_Y()
     window.Title(window_name, str(window.getFPS()))
     Mouse.bindMotion(window_name, image.ChangePos(img2, (mouseX + 1), (mouseY + 1)))
-    random.Screen(100, 50, canvas, window_name)
+    #random.Screen(100, 50, canvas, window_name)
     window.after(window_name, mainloop)
     #print(gui.getTextInput(text_input, True))
 
