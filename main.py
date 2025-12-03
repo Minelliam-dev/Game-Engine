@@ -248,7 +248,7 @@ class Mouse:
         else:
             widget.bind("<Button-4>", on_scroll)  # Scroll up
             widget.bind("<Button-5>", on_scroll)  # Scroll down
-    	
+
 class Input:
     keys_held = set()
     callbacks = {}
@@ -725,10 +725,12 @@ gui.pack(slider)
 
 img2 = image.Load("image.png", 0, 0, 200, 200, window_name)
 img3 = image.Load("image.png", 0, 0, 200, 200, window_name)
-def move(): image.ChangePos(img3, image.getPosX(img3), image.getPosY(img3) + 2)
 
-Input.bindKey(window_name, "w", kill)
+
+def move(): image.ChangePos(img3, image.getPosX(img3), image.getPosY(img3) + 2)
 Input.bindKey(window_name, "s", move)
+
+Input.bindKey(window_name, "e", kill)
 
 image.Rotate(img2, 0)
 
@@ -756,10 +758,7 @@ def mainloop():
     mouseY = mouse.get_Y()
     window.Title(window_name, str(window.getFPS()))
     Mouse.bindMotion(window_name, image.ChangePos(img2, (mouseX + 1), (mouseY + 1)))
-    #random.Screen(100, 50, canvas, window_name)
     window.after(window_name, mainloop)
-    #print(gui.getTextInput(text_input, True))
-
 
 mainloop()
 window.mainloop(window_name)
