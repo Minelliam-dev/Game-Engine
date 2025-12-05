@@ -1,7 +1,7 @@
 import random as r
 from tkinter import Tk, ttk
 import tkinter as tk
-import time, os, platform, string, subprocess, threading, wave
+import time, os, platform, string, subprocess, threading, wave, socket
 from PIL import Image, ImageTk, ImageFilter
 
 class console:
@@ -656,7 +656,138 @@ class image:
         except Exception as e:
             print("RotateImage error:", e)
 
+class NetworkManager:
+    def __init__(self):
+        self.server_socket = None
+        self.client_socket = None
+        self.clients = []
+        self.running = False
+        self.on_message = None
+        self.is_server = False
 
+    def start_server(self, host="0.0.0.0", port=5000, on_message=None):
+        """Starts a server that listens for clients."""
+        self.is_server = True
+        self.on_message = on_message
+        self.running = True
+
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.bind((host, port))
+        self.server_socket.listen()
+
+        threading.Thread(target=self._accept_clients, daemon=True).start()
+        print(f"[SERVER] Started on {host}:{port}")
+
+    def _accept_clients(self):
+        """Accepts clients in background."""
+        while self.running:
+            try:
+                conn, addr = self.server_socket.accept()
+                print(f"[SERVER] Client connected: {addr}")
+                self.clients.append(conn)
+
+                threading.Thread(target=self._handle_client,
+                                 args=(conn,), daemon=True).start()
+            except:
+                break
+
+    def _handle_client(self, conn):
+        """Handles receiving messages from one client."""
+        while self.running:
+            try:
+                data = conn.recv(1024)
+                if not data:
+                    break
+
+                msg = data.decode()
+                if self.on_message:
+                    self.on_message(msg, conn)  # Pass who sent it
+            except:
+                break
+
+        print("[SERVER] Client disconnected")
+        self.clients.remove(conn)
+        conn.close()
+
+    def send_to_client(self, conn, message):
+        """Send a message to one connected client."""
+        try:
+            conn.send(message.encode())
+        except:
+            pass
+
+    def broadcast(self, message):
+        """Send a message to every connected client."""
+        for client in list(self.clients):
+            try:
+                client.send(message.encode())
+            except:
+                self.clients.remove(client)
+
+    # =====================================================
+    # CLIENT FUNCTIONS
+    # =====================================================
+
+    def start_client(self, host="127.0.0.1", port=5000, on_message=None):
+        """Connect to a server."""
+        self.is_server = False
+        self.on_message = on_message
+        self.running = True
+
+        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.client_socket.connect((host, port))
+
+        threading.Thread(target=self._listen_to_server, daemon=True).start()
+        print(f"[CLIENT] Connected to {host}:{port}")
+
+    def _listen_to_server(self):
+        """Listen for messages from server."""
+        while self.running:
+            try:
+                data = self.client_socket.recv(1024)
+                if not data:
+                    break
+
+                msg = data.decode()
+                if self.on_message:
+                    self.on_message(msg)
+            except:
+                break
+
+        print("[CLIENT] Disconnected from server")
+
+    def send_to_server(self, message):
+        """Send message to server."""
+        if self.client_socket:
+            try:
+                self.client_socket.send(message.encode())
+            except:
+                pass
+
+    # =====================================================
+    # CLEANUP
+    # =====================================================
+
+    def close(self):
+        """Shuts down server or client cleanly."""
+        self.running = False
+
+        # Close client
+        if self.client_socket:
+            try: self.client_socket.close()
+            except: pass
+
+        # Close server + all clients
+        if self.server_socket:
+            try: self.server_socket.close()
+            except: pass
+
+        for c in self.clients:
+            try: c.close()
+            except: pass
+
+        self.clients.clear()
+        print("[NETWORK] Closed all connections.")
 
 # Example usage
 console.clear()
@@ -726,9 +857,19 @@ gui.pack(slider)
 img2 = image.Load("image.png", 0, 0, 200, 200, window_name)
 img3 = image.Load("image.png", 0, 0, 200, 200, window_name)
 
+speed = 4
 
-def move(): image.ChangePos(img3, image.getPosX(img3), image.getPosY(img3) + 2)
+def move(): image.ChangePos(img3, image.getPosX(img3), image.getPosY(img3) + speed)
 Input.bindKey(window_name, "s", move)
+
+def move2(): image.ChangePos(img3, image.getPosX(img3) + speed, image.getPosY(img3))
+Input.bindKey(window_name, "d", move2)
+
+def move3(): image.ChangePos(img3, image.getPosX(img3), image.getPosY(img3) - speed)
+Input.bindKey(window_name, "w", move3)
+
+def move4(): image.ChangePos(img3, image.getPosX(img3) - speed, image.getPosY(img3))
+Input.bindKey(window_name, "a", move4)
 
 Input.bindKey(window_name, "e", kill)
 
@@ -751,7 +892,6 @@ data.write("test.txt", str(data.read("test.txt", 10)) + "test")
 print(data.read("test.txt", 7))
 if data.getFolderExists("test2") == False:
     data.createFolder("test2")
-
 
 def mainloop():
     mouseX = mouse.get_X()
