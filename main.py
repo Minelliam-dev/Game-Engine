@@ -22,8 +22,40 @@ class console:
         if (color == "cyan"): print('\033[36m' + str(text) + '\033[0m')
         if (color == "gray"): print('\033[30m' + str(text) + '\033[0m')
 
+class general_gui_functions:
+    def increase_Z_order(object):
+        try:
+            object.lift()
+        except:
+            try:
+                canvas.tag_raise(object)
+            except:
+                return
+
+    def decrease_Z_order(object):
+        try:
+            object.lower()
+        except:
+            try:
+                canvas.tag_lower(object)
+            except:
+                return
+
+    def set_X(object, newX):
+        object.place(x=newX)
+    
+    def set_Y(object, newY):
+        object.place(y=newY)
+
+    def Set_Pos(widget, newX, newY):
+        try:
+            widget.place_configure(x=newX, y=newY)
+            widget.update_idletasks()  # forces a redraw to prevent ghosting
+        except Exception as e:
+            print("Error:", e)
+            print("could not place the widget")
+
 class gui:
-     
     def label(text, Window, backgroundColor=None, foregroundColor="black", x=0, y=0):
         kwargs = {"text": text, "foreground": foregroundColor}
         if backgroundColor is not None:
@@ -36,9 +68,11 @@ class gui:
 
      
     def button(text, x, y, function, Window, theme):
+        canvas1 = tk.Canvas(Window, bg='#f6f6f6', highlightthickness=0)
+        
         if theme == "light":
             button = tk.Button(Window, text=text, command=function, anchor="center")
-        if theme == "dark":
+        elif theme == "dark":
             button = tk.Button(Window, text=text, command=function, anchor="center", fg="darkgray", bg="black")
 
         button.place(x=x, y=y)
@@ -47,49 +81,48 @@ class gui:
      
     def pack(asset):
         asset.pack()
-
      
     def SetButtonSize(Button, height, width):
         Button.config(height=height, width=width)
     
-     
+    def ButtonStyle(button, fg=None, bg=None):
+        if fg != None:
+            button.config(fg=fg)
+        if bg != None:
+            button.config(bg=bg)
+
     def SetLabelText(Label, new_text):
         Label.config(text=new_text)
-    
      
     def SetButtonFunction(Button, function):
+        Button.config(state="disabled")
         Button.config(command=function)
-    
-     
+        Button.config(state="normal")
+
     def slider(Window, x, y, max_value, min_value, orientation="horizontal"):
         cale2 = ttk.Scale(Window, from_=min_value, to=max_value, orient=orientation, style="")
         cale2.place(x=x, y=y)
         return cale2
-
      
     def sliderValue(slider):
         return int(slider.get())
     
-     
     def disableSlider(slider, boolean=True):
         if boolean:
             slider['state'] = 'disabled'
         else:
             slider['state'] = 'normal'
 
-     
     def setSlider(slider, value):
         variable2 = tk.IntVar(value = value)
         slider.config(variable=variable2)
 
-     
     def sliderStyle(slider, bg, fg, is_slider_vertical=False):
         style = ttk.Style()
         style.configure("TScale", background=bg, fg=fg, handle="#ffffff")
         slider.config(style="TScale")
         slider.pack()
 
-     
     def createTextInput(window, x, y, width, height, multi_line=False):
         if multi_line:
             text_box = tk.Text(window, height=height, width=width, )
@@ -102,7 +135,6 @@ class gui:
             entry.place(x=x, y=y)
             return entry
 
-     
     def getTextInput(entity, has_multiple_lines):
         if has_multiple_lines == True:
             return entity.get("1.0", tk.END)
@@ -574,6 +606,13 @@ class data:
         with open(path2, "r") as f:
             content = f.read()
         return content
+    
+    def delete_file(file_path):
+        if data.getFileExists(file_path):
+            file_path.unlink()
+        else:
+            print("Cannot delete file. File not found")
+            return
 
 class image:
     # --- Path helper for image files ---
@@ -618,16 +657,6 @@ class image:
         except Exception as e:
             print("Error:", e)
             print("Please confirm the file is a .png or .jpg and that the path is correct.")
-
-     
-    def ChangePos(widget, newX, newY):
-        try:
-            widget.place_configure(x=newX, y=newY)
-            widget.update_idletasks()  # forces a redraw to prevent ghosting
-        except Exception as e:
-            print("Error:", e)
-            print("could not place the widget")
-            
      
     def getPosX(img):
         return img.winfo_x()
@@ -656,7 +685,7 @@ class image:
         except Exception as e:
             print("RotateImage error:", e)
 
-class NetworkManager:
+class Networking:
     def __init__(self):
         self.server_socket = None
         self.client_socket = None
@@ -789,116 +818,121 @@ class NetworkManager:
         self.clients.clear()
         print("[NETWORK] Closed all connections.")
 
-# Example usage
-console.clear()
-console.color_print("red", "red")
-console.color_print("green", "green")
-console.color_print("blue", "blue")
-console.color_print("normal", "white")
-console.color_print("yellow", "yellow")
-console.color_print("purple", "purple")
-console.color_print("cyan", "cyan")
-console.color_print("gray", random.Letter(50))
-console.color_print("blue", str(random.Randomfloat(0, 1)))
+if __name__ == "__main__":
+    # Example usage
+    console.clear()
+    console.color_print("red", "red")
+    console.color_print("green", "green")
+    console.color_print("blue", "blue")
+    console.color_print("normal", "white")
+    console.color_print("yellow", "yellow")
+    console.color_print("purple", "purple")
+    console.color_print("cyan", "cyan")
+    console.color_print("gray", random.Letter(50))
+    console.color_print("blue", str(random.Randomfloat(0, 1)))
 
-window_name = window.new_window(1000, 1000, "test")
-label1 = gui.label("test", window_name, None, "green", 1, 1)
-label2 = gui.label("mouse", window_name, None, "black", 1, 1)
-gui.pack(label1)
+    window_name = window.new_window(1000, 1000, "test")
+    label1 = gui.label("test", window_name, None, "green", 1, 1)
+    label2 = gui.label("mouse", window_name, None, "black", 1, 1)
+    gui.pack(label1)
 
-canvas = Canvas.create_canvas(1000, 1000, "#000000", window_name, -2, 0)
-Canvas.draw_pixel(9, 9, "#ff0000", canvas, 50)
-Canvas.draw_pixel(0, 0, "#ff0000", canvas, 50)
-window.set_cursor("cross", window_name)
+    canvas = Canvas.create_canvas(1000, 1000, "#000000", window_name, -2, 0)
+    Canvas.draw_pixel(9, 9, "#ff0000", canvas, 50)
+    Canvas.draw_pixel(0, 0, "#ff0000", canvas, 50)
+    window.set_cursor("cross", window_name)
 
-mouse = Mouse(window_name)
+    mouse = Mouse(window_name)
 
-print_FPS = True
-print_mouseX = True
+    print_FPS = True
+    print_mouseX = True
 
-def test(event): print("test")
-def test2(): print("test")
-def test3(): print("test2")
+    def test(event): print("test")
+    def test2(): print("test")
+    def test3(): print("test2")
 
-def kill(): window.close(window_name)
+    def kill(): window.close(window_name)
 
-def set_text(event): gui.SetLabelText(label1, "testtttttt")
+    def set_text(event): gui.SetLabelText(label1, "testtttttt")
 
-button2 = gui.button("test", 0, 100, lambda: print("test"), window_name, "dark")
-button3 = gui.button("close", 0, 0, lambda: window.close(window_name), window_name, "light")
-button4 = gui.button("set label", 0, 50, lambda: gui.SetLabelText(label1, "testing the changing of label text"), window_name, "light")
-button5 = gui.button("change button defenition", 0, 150, lambda: gui.SetButtonFunction(button4, gui.SetLabelText(label1, "testing the changing of label text for the second time")), window_name, "light")
-button6 = gui.button("play sound", 0, 200, lambda: sound.play("sound.wav", False), window_name, "dark")
-button7 = gui.button("stop sound", 70, 200, lambda: sound.StopAll(), window_name, "dark")
+    button2 = gui.button("test", 0, 100, lambda: print("test"), window_name, "dark")
+    button3 = gui.button("close", 0, 0, lambda: window.close(window_name), window_name, "light")
+    button4 = gui.button("set label", 0, 50, lambda: gui.SetLabelText(label1, "testing the changing of label text"), window_name, "light")
+    button5 = gui.button("change button defenition", 0, 150, lambda: gui.SetButtonFunction(button4, gui.SetLabelText(label1, "testing the changing of label text for the second time")), window_name, "light")
+    button6 = gui.button("play sound", 0, 200, lambda: sound.play("sound.wav", False), window_name, "dark")
+    button7 = gui.button("stop sound", 70, 200, lambda: sound.StopAll(), window_name, "dark")
 
-gui.SetButtonSize(button3, 0, 10)
+    gui.SetButtonSize(button3, 0, 10)
 
-window.changeIcon(window_name, "icon.ico")
+    window.changeIcon(window_name, "icon.ico")
 
-window.CursorVisible(window_name, True)
-window.AllowResize(window_name, True)
+    window.CursorVisible(window_name, True)
+    window.AllowResize(window_name, True)
 
-button8 = gui.button("Fullscreen off", 100, 50, lambda: window.Fullscreen(window_name, False), window_name, "dark")
-button9 = gui.button("Fullscreen on", 100, 100, lambda: window.Fullscreen(window_name, True), window_name, "dark")
-button10 = gui.button("Hide Title Bar off", 200, 50, lambda: window.HideTitleBar(window_name, False), window_name, "dark")
-button11 = gui.button("Hide Title Bar on", 200, 100, lambda: window.HideTitleBar(window_name, True), window_name, "dark")
-button12 = gui.button("randomise screen", 200, 130, lambda: random.Screen(10, 50, window_name), window_name, "dark")
+    button8 = gui.button("Fullscreen off", 100, 50, lambda: window.Fullscreen(window_name, False), window_name, "dark")
+    button9 = gui.button("Fullscreen on", 100, 100, lambda: window.Fullscreen(window_name, True), window_name, "dark")
+    button10 = gui.button("Hide Title Bar off", 200, 50, lambda: window.HideTitleBar(window_name, False), window_name, "dark")
+    button11 = gui.button("Hide Title Bar on", 200, 100, lambda: window.HideTitleBar(window_name, True), window_name, "dark")
+    button12 = gui.button("randomise screen", 200, 130, lambda: random.Screen(10, 50, window_name), window_name, "dark")
 
-print(device.cpu_cores())
-print(device.plattform())
+    print(device.cpu_cores())
+    print(device.plattform())
 
-slider = gui.slider(window_name, 0, 0, 100, 0, "horizontal")
+    slider = gui.slider(window_name, 0, 0, 100, 0, "horizontal")
 
-gui.disableSlider(slider, False)
-gui.setSlider(slider, 50)
-gui.sliderStyle(slider, "#000000", "#ffffff", False)
-gui.pack(slider)
+    gui.disableSlider(slider, False)
+    gui.setSlider(slider, 50)
+    gui.sliderStyle(slider, "#000000", "#ffffff", False)
+    gui.pack(slider)
 
-img2 = image.Load("image.png", 0, 0, 200, 200, window_name)
-img3 = image.Load("image.png", 0, 0, 200, 200, window_name)
+    img2 = image.Load("image.png", 0, 0, 200, 200, window_name)
+    img3 = image.Load("image.png", 0, 0, 200, 200, window_name)
 
-speed = 4
+    speed = 8
 
-def move(): image.ChangePos(img3, image.getPosX(img3), image.getPosY(img3) + speed)
-Input.bindKey(window_name, "s", move)
+    def move(): general_gui_functions.Set_Pos(img3, image.getPosX(img3), image.getPosY(img3) + speed)
+    Input.bindKey(window_name, "s", move)
 
-def move2(): image.ChangePos(img3, image.getPosX(img3) + speed, image.getPosY(img3))
-Input.bindKey(window_name, "d", move2)
+    def move2(): general_gui_functions.Set_Pos(img3, image.getPosX(img3) + speed, image.getPosY(img3))
+    Input.bindKey(window_name, "d", move2)
 
-def move3(): image.ChangePos(img3, image.getPosX(img3), image.getPosY(img3) - speed)
-Input.bindKey(window_name, "w", move3)
+    def move3(): general_gui_functions.Set_Pos(img3, image.getPosX(img3), image.getPosY(img3) - speed)
+    Input.bindKey(window_name, "w", move3)
 
-def move4(): image.ChangePos(img3, image.getPosX(img3) - speed, image.getPosY(img3))
-Input.bindKey(window_name, "a", move4)
+    def move4(): general_gui_functions.Set_Pos(img3, image.getPosX(img3) - speed, image.getPosY(img3))
+    Input.bindKey(window_name, "a", move4)
 
-Input.bindKey(window_name, "e", kill)
+    Input.bindKey(window_name, "e", kill)
 
-image.Rotate(img2, 0)
+    image.Rotate(img2, 0)
 
-mouseX = mouse.get_X()
-mouseY = mouse.get_Y()
-
-text_input = gui.createTextInput(window_name, 300, 0, 30, 10, True)
-
-#Mouse.bindMotion(window_name, test)
-#Mouse.bindClick(window_name, "right", test2)
-
-Mouse.bindMouseWheel(window_name, test2, test3)
-
-image.Rotate(img2, 10)
-
-data.create("test", ".txt")
-data.write("test.txt", str(data.read("test.txt", 10)) + "test")
-print(data.read("test.txt", 7))
-if data.getFolderExists("test2") == False:
-    data.createFolder("test2")
-
-def mainloop():
     mouseX = mouse.get_X()
     mouseY = mouse.get_Y()
-    window.Title(window_name, str(window.getFPS()))
-    Mouse.bindMotion(window_name, image.ChangePos(img2, (mouseX + 1), (mouseY + 1)))
-    window.after(window_name, mainloop)
 
-mainloop()
-window.mainloop(window_name)
+    text_input = gui.createTextInput(window_name, 300, 0, 30, 10, True)
+
+    #Mouse.bindMotion(window_name, test)
+    #Mouse.bindClick(window_name, "right", test2)
+
+    Mouse.bindMouseWheel(window_name, test2, test3)
+
+    image.Rotate(img2, 0)
+
+    data.create("test", ".txt")
+    data.write("test.txt", str(data.read("test.txt", 10)) + "test")
+    print(data.read("test.txt", 7))
+    if data.getFolderExists("test2") == False:
+        data.createFolder("test2")
+
+    general_gui_functions.increase_Z_order(label1)
+    general_gui_functions.decrease_Z_order(canvas)
+
+    def mainloop():
+        mouseX = mouse.get_X()
+        mouseY = mouse.get_Y()
+        window.Title(window_name, str(window.getFPS()))
+        Mouse.bindMotion(window_name, general_gui_functions.Set_Pos(img2, (mouseX + 1), (mouseY + 1)))
+        random.Screen(10, 50, canvas, window_name)
+        window.after(window_name, mainloop)
+
+    mainloop()
+    window.mainloop(window_name)
