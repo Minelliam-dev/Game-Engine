@@ -68,8 +68,6 @@ class gui:
 
      
     def button(text, x, y, function, Window, theme):
-        canvas1 = tk.Canvas(Window, bg='#f6f6f6', highlightthickness=0)
-        
         if theme == "light":
             button = tk.Button(Window, text=text, command=function, anchor="center")
         elif theme == "dark":
@@ -77,7 +75,6 @@ class gui:
 
         button.place(x=x, y=y)
         return button
-
      
     def pack(asset):
         asset.pack()
@@ -113,15 +110,30 @@ class gui:
         else:
             slider['state'] = 'normal'
 
+    def disableButton(button, boolean=True):
+        if boolean:
+            button['state'] = 'disabled'
+        else:
+            button['state'] = 'normal'
+
     def setSlider(slider, value):
         variable2 = tk.IntVar(value = value)
         slider.config(variable=variable2)
 
     def sliderStyle(slider, bg, fg, is_slider_vertical=False):
-        style = ttk.Style()
-        style.configure("TScale", background=bg, fg=fg, handle="#ffffff")
-        slider.config(style="TScale")
-        slider.pack()
+        try:
+            slider.configure(
+                bg=bg,                 # widget background
+                fg=fg,                 # text/ticks color (if shown)
+                troughcolor=bg,        # the track color
+                activebackground=fg,   # color when interacting (handle highlight)
+                highlightthickness=0,
+                orient=tk.VERTICAL if is_slider_vertical else tk.HORIZONTAL
+            )
+            return slider
+        except:
+            return
+
 
     def createTextInput(window, x, y, width, height, multi_line=False):
         if multi_line:
@@ -140,6 +152,57 @@ class gui:
             return entity.get("1.0", tk.END)
         if has_multiple_lines == False:
             return entity.get()
+
+class device:
+    def cpu_cores():
+        return os.cpu_count()
+
+    def plattform():
+        return platform.system()
+
+    def current_location():
+        return os.path.abspath(__file__)
+
+class Input:
+    keys_held = set()
+    callbacks = {}
+
+    @staticmethod
+    def bindKey(window, key, function, repeat_ms=16):
+        """
+        key: key name like "Escape", "space", "Left", "Control_L", "a", "Return"...
+        function: function to run while key is held
+        """
+
+        # save callback
+        Input.callbacks[key] = (function, repeat_ms)
+
+        # global event bindings (press + release)
+        window.bind("<KeyPress>", Input._on_press)
+        window.bind("<KeyRelease>", Input._on_release)
+
+        # Start loop once
+        if not hasattr(Input, "_loop_started"):
+            Input._loop_started = True
+            Input._loop(window)
+
+    @staticmethod
+    def _on_press(event):
+        Input.keys_held.add(event.keysym)
+
+    @staticmethod
+    def _on_release(event):
+        if event.keysym in Input.keys_held:
+            Input.keys_held.remove(event.keysym)
+
+    @staticmethod
+    def _loop(window):
+        for key in list(Input.keys_held):
+            if key in Input.callbacks:
+                func, _ = Input.callbacks[key]
+                func()
+
+        window.after(16, lambda: Input._loop(window))
 
 class window:
     # --- Path helper for window-related file paths (like icons) ---
@@ -208,15 +271,20 @@ class window:
     def Title(Window, title):
         Window.title(title)
 
-class device:
-    def cpu_cores():
-        return os.cpu_count()
+    def SetPosition(Window, x, y):
+        Window.geometry(("+" + str(x) + "+" + str(y)))
 
-    def plattform():
-        return platform.system()
-
-    def current_location():
-        return os.path.abspath(__file__)
+    def getX(Window):
+        return Window.winfo_x()
+    
+    def getY(Window):
+        return Window.winfo_y()
+    
+    def setPosY(Window, y):
+        Window.geometry(("+", str(window.getX(Window)), str(y)))
+    
+    def setPosX(Window, x):
+        Window.geometry(("+", str(x)))
 
 class Mouse:
     def __init__(self, window):
@@ -238,17 +306,39 @@ class Mouse:
     def bindMotion(window, function):
         window.bind("<Motion>", function)
 
-    def bindClick(window, button, function):
-        if button == "left":
-            window.bind('<ButtonPress-1>', function)
-        elif button == "middle":
-            window.bind('<ButtonPress-2>', function)
-        elif button == "right":
-            window.bind('<ButtonPress-3>', function)
-        elif button == "side-1":
-            window.bind('<ButtonPress-4>', function)
-        elif button == "side-2":
-            window.bind('<ButtonPress-5>', function)
+    def bindClick(window, button, function, event_type="down"):
+        # Map button names to Tkinter button numbers
+        button_map = {
+            "left": 1,
+            "middle": 2,
+            "right": 3,
+            "side-1": 4,
+            "side-2": 5
+        }
+
+        if button not in button_map:
+            raise ValueError(f"Unknown button: {button}")
+
+        if event_type == "down":
+            event = f"<ButtonPress-{button_map[button]}>"
+        elif event_type == "up":
+            event = f"<ButtonRelease-{button_map[button]}>"
+        else:
+            raise ValueError("event_type must be 'down' or 'up'")
+
+        window.bind(event, function)
+
+    def getGlobalX(Window):
+        mouse = Mouse(Window)
+
+        globalMouseX = window.getX(Window) + Mouse.get_X(mouse)
+        return globalMouseX
+    
+    def getGlobalY(Window):
+        mouse = Mouse(Window)
+
+        globalMouseY = window.getY(Window) + Mouse.get_Y(mouse)
+        return globalMouseY
 
     def bindMouseWheel(widget, function_up=None, function_down=None):
         system = platform.system()
@@ -280,47 +370,6 @@ class Mouse:
         else:
             widget.bind("<Button-4>", on_scroll)  # Scroll up
             widget.bind("<Button-5>", on_scroll)  # Scroll down
-
-class Input:
-    keys_held = set()
-    callbacks = {}
-
-    @staticmethod
-    def bindKey(window, key, function, repeat_ms=16):
-        """
-        key: key name like "Escape", "space", "Left", "Control_L", "a", "Return"...
-        function: function to run while key is held
-        """
-
-        # save callback
-        Input.callbacks[key] = (function, repeat_ms)
-
-        # global event bindings (press + release)
-        window.bind("<KeyPress>", Input._on_press)
-        window.bind("<KeyRelease>", Input._on_release)
-
-        # Start loop once
-        if not hasattr(Input, "_loop_started"):
-            Input._loop_started = True
-            Input._loop(window)
-
-    @staticmethod
-    def _on_press(event):
-        Input.keys_held.add(event.keysym)
-
-    @staticmethod
-    def _on_release(event):
-        if event.keysym in Input.keys_held:
-            Input.keys_held.remove(event.keysym)
-
-    @staticmethod
-    def _loop(window):
-        for key in list(Input.keys_held):
-            if key in Input.callbacks:
-                func, _ = Input.callbacks[key]
-                func()
-
-        window.after(16, lambda: Input._loop(window))
 
 class Canvas:
     def create_canvas(width, height, Background, window, x, y):
@@ -624,8 +673,7 @@ class image:
 
      
     def Load(path, x, y, width, height, window):
-        # Convert the given path into an absolute path relative to THIS file
-        full_path = image._resolve_path(path)   # path is a string like "textures/img.png"
+        full_path = image._resolve_path(path)
 
         print("Loading image from:", full_path)
 
@@ -684,6 +732,22 @@ class image:
 
         except Exception as e:
             print("RotateImage error:", e)
+
+    def crop(img, texture_start_X, texture_start_Y, texture_width, texture_height):
+        try:
+            atlas = img.convert("RGBA")
+
+            # sprite rect in pixels: (x, y, w, h) with (0,0) at top-left
+            x, y, w, h = texture_start_X, texture_start_Y, texture_width, texture_height
+
+            sprite = atlas.crop((x, y, x + w, y + h))
+            return sprite
+        except:
+            pass
+
+class imageFilter:
+    def blur(image, scale):
+        return image.filter(ImageFilter.GaussianBlur(radius=scale))
 
 class Networking:
     def __init__(self):
@@ -837,8 +901,7 @@ if __name__ == "__main__":
     gui.pack(label1)
 
     canvas = Canvas.create_canvas(1000, 1000, "#000000", window_name, -2, 0)
-    Canvas.draw_pixel(9, 9, "#ff0000", canvas, 50)
-    Canvas.draw_pixel(0, 0, "#ff0000", canvas, 50)
+
     window.set_cursor("cross", window_name)
 
     mouse = Mouse(window_name)
@@ -887,6 +950,12 @@ if __name__ == "__main__":
     img2 = image.Load("image.png", 0, 0, 200, 200, window_name)
     img3 = image.Load("image.png", 0, 0, 200, 200, window_name)
 
+    img5 = image.Load("image.png", 0, 0, 200, 200, window_name)
+
+    img4 = image.crop(img5, 0, 0, 20, 20)
+
+    #general_gui_functions.set_X(img4, 100)
+
     speed = 8
 
     def move(): general_gui_functions.Set_Pos(img3, image.getPosX(img3), image.getPosY(img3) + speed)
@@ -926,12 +995,22 @@ if __name__ == "__main__":
     general_gui_functions.increase_Z_order(label1)
     general_gui_functions.decrease_Z_order(canvas)
 
+    print(window.getY(window_name))
+    print(window.getX(window_name))
+
+    print(Mouse.getGlobalX(window_name))
+    print(Mouse.getGlobalY(window_name))
+
+    print(Mouse.getGlobalX(window_name))
+    print(Mouse.getGlobalY(window_name))
+
     def mainloop():
         mouseX = mouse.get_X()
         mouseY = mouse.get_Y()
         window.Title(window_name, str(window.getFPS()))
         Mouse.bindMotion(window_name, general_gui_functions.Set_Pos(img2, (mouseX + 1), (mouseY + 1)))
         random.Screen(10, 50, canvas, window_name)
+        window.SetPosition(window_name, 1, 1)
         window.after(window_name, mainloop)
 
     mainloop()
