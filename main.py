@@ -152,6 +152,10 @@ class gui:
             return entity.get("1.0", tk.END)
         if has_multiple_lines == False:
             return entity.get()
+        
+    def setInputText(input, newText):
+        input.delete(0, tk.END)
+        input.insert(0, newText)
 
 class device:
     def cpu_cores():
