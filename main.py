@@ -3,6 +3,7 @@ from tkinter import Tk, ttk
 import tkinter as tk
 import time, os, platform, string, subprocess, threading, wave, socket
 from PIL import Image, ImageTk, ImageFilter
+import numpy as np
 
 class console:
      
@@ -67,11 +68,17 @@ class gui:
         return label
 
      
-    def button(text, x, y, function, Window, theme):
-        if theme == "light":
-            button = tk.Button(Window, text=text, command=function, anchor="center")
-        elif theme == "dark":
-            button = tk.Button(Window, text=text, command=function, anchor="center", fg="darkgray", bg="black")
+    def button(text, x, y, function, Window, theme, width=None, height=None):
+        if width != None and height != None:
+            if theme == "light":
+                button = tk.Button(Window, text=text, command=function, anchor="center", height = height, width = width)
+            elif theme == "dark":
+                button = tk.Button(Window, text=text, command=function, anchor="center", fg="darkgray", bg="black", height = height, width = width)
+        else:
+            if theme == "light":
+                button = tk.Button(Window, text=text, command=function, anchor="center")
+            elif theme == "dark":
+                button = tk.Button(Window, text=text, command=function, anchor="center", fg="darkgray", bg="black")
 
         button.place(x=x, y=y)
         return button
@@ -179,7 +186,8 @@ class Input:
         """
 
         # save callback
-        Input.callbacks[key] = (function, repeat_ms)
+        if function != None:
+            Input.callbacks[key] = (function, repeat_ms)
 
         # global event bindings (press + release)
         window.bind("<KeyPress>", Input._on_press)
@@ -189,6 +197,50 @@ class Input:
         if not hasattr(Input, "_loop_started"):
             Input._loop_started = True
             Input._loop(window)
+
+    @staticmethod
+    def bindKeyDown(window, key, function, repeat_ms=16):
+        """
+        key: key name like "Escape", "space", "Left", "Control_L", "a", "Return"...
+        function: function to run while key is held
+        """
+
+        # save callback
+        if function != None:
+            Input.callbacks[key] = (function, repeat_ms)
+
+        window.bind("<KeyPress>", Input._on_press)
+
+        # Start loop once
+        if not hasattr(Input, "_loop_started"):
+            Input._loop_started = True
+            Input._loop(window)
+
+    @staticmethod
+    def bindKeyUp(window, key, function, repeat_ms=16):
+        """
+        key: key name like "Escape", "space", "Left", "Control_L", "a", "Return"...
+        function: function to run while key is held
+        """
+
+        # save callback
+        if function != None:
+            Input.callbacks[key] = (function, repeat_ms)
+
+        window.bind("<KeyRelease>", Input._on_release)
+
+        # Start loop once
+        if not hasattr(Input, "_loop_started"):
+            Input._loop_started = True
+            Input._loop(window)
+
+    @staticmethod
+    def getKey(key):
+        """
+        Returns True if the key is currently being held, otherwise False.
+        Example: Input.getKey("a")
+        """
+        return key in Input.keys_held
 
     @staticmethod
     def _on_press(event):
@@ -207,6 +259,11 @@ class Input:
                 func()
 
         window.after(16, lambda: Input._loop(window))
+
+    @staticmethod
+    def getKey(key):
+        """Returns True if the key is currently being held, otherwise False."""
+        return key in Input.keys_held
 
 class window:
     # --- Path helper for window-related file paths (like icons) ---
@@ -289,6 +346,9 @@ class window:
     
     def setPosX(Window, x):
         Window.geometry(("+", str(x)))
+
+    def stay_on_top(Window, bool):
+        Window.attributes("-topmost", bool)
 
 class Mouse:
     def __init__(self, window):
@@ -376,13 +436,21 @@ class Mouse:
             widget.bind("<Button-5>", on_scroll)  # Scroll down
 
 class Canvas:
+    def init(self):
+        self.bg = 0
+        self.width = 0
+        self.height = 0
+
     def create_canvas(width, height, Background, window, x, y):
         canvas = tk.Canvas(window, width=width, height=height, bg=Background)
         gui.pack(canvas)
         img = tk.PhotoImage(width=width, height=height)
         canvas.create_image((width / 2, height / 2), image=img, state="normal")
-        canvas.place(x=x, y=y)
-        return img
+        canvas.place(x=x-2, y=y-2)
+        Canvas.bg = Background
+        Canvas.width = width
+        Canvas.height = height
+        return (canvas, img)
 
     def draw_pixel(x, y, hex_color, canvas, pixel_size):
         x = x * pixel_size
@@ -396,6 +464,14 @@ class Canvas:
         x *= grid_size
         y *= grid_size
         return canvas.get(x, y)
+    
+    def clear(canvas):
+        for h in range(Canvas.height):
+            for w in range(Canvas.width):
+                Canvas.draw_pixel(w, h, Canvas.bg, canvas, 1)
+
+    def line(canvas, start_x, start_y, end_x, end_y, color, thickness):
+        canvas.create_line(start_x, start_y, end_x, end_y, fill=color, width=thickness)
 
 class random:
      
@@ -675,31 +751,53 @@ class image:
         base = os.path.dirname(os.path.abspath(__file__))
         return os.path.join(base, relative_path)
 
-     
-    def Load(path, x, y, width, height, window):
-        full_path = image._resolve_path(path)
-
+    def Load(path):
+        full_path = path
         print("Loading image from:", full_path)
-
         try:
             img = Image.open(full_path).convert("RGBA")
+            return img
+        except Exception as e:
+            print("Error:", e)
+            print("Please confirm the file is a .png or .jpg and that the path is correct.")
 
+
+    def show(img, x, y, width, height, window, background_img=None):
+        try:
             scale_factor = 4
+
+            # Resize foreground image
             img = img.resize(
                 (img.width * scale_factor, img.height * scale_factor),
                 Image.NEAREST
             )
-
             img = img.resize(
                 (width, height),
                 Image.BOX
-            )
+            ).convert("RGBA")
+
+            # If a background image is provided, blend the transparent image
+            # with the pixels behind it
+            if background_img is not None:
+                bg = background_img.convert("RGBA")
+
+                # Make sure crop stays inside background bounds
+                if x < 0 or y < 0 or x + width > bg.width or y + height > bg.height:
+                    raise ValueError("Image position is outside the background image bounds.")
+
+                bg_crop = bg.crop((x, y, x + width, y + height))
+                img = Image.alpha_composite(bg_crop, img)
 
             img_tk = ImageTk.PhotoImage(img, master=window)
 
-            panel = tk.Label(window, image=img_tk, bd=0, highlightthickness=0)
-            panel.image = img_tk          # must keep a reference for Tk
-            panel.pil_image = img         # store PIL image, e.g., for rotation later
+            panel = tk.Label(
+                window,
+                image=img_tk,
+                bd=0,
+                highlightthickness=0
+            )
+            panel.image = img_tk
+            panel.pil_image = img
             panel.img_width = width
             panel.img_height = height
             panel.place(x=x, y=y)
@@ -708,31 +806,27 @@ class image:
 
         except Exception as e:
             print("Error:", e)
-            print("Please confirm the file is a .png or .jpg and that the path is correct.")
-     
+            print("Please confirm the file is a .png or .jpg and that the path is correct")
+    
     def getPosX(img):
         return img.winfo_x()
-    
      
     def getPosY(img):
         return img.winfo_y()
-
      
-    def Rotate(panel, angle):
+    def Rotate(img, angle):
         try:
-            pil_img = panel.pil_image.convert("RGBA")
+            pil_img = img.pil_image.convert("RGBA")
 
             rotated = pil_img.rotate(angle, expand=True)
 
-            # Resize AFTER rotation kills quality.
-            # Better: resize BEFORE rotation.
-            rotated = rotated.resize((panel.img_width, panel.img_height), Image.LANCZOS)
+            rotated = rotated.resize((img.img_width, img.img_height), Image.LANCZOS)
 
-            img_tk = ImageTk.PhotoImage(rotated, master=panel.master)
+            img_tk = ImageTk.PhotoImage(rotated, master=img.master)
 
-            panel.configure(image=img_tk)
-            panel.image = img_tk
-            panel.pil_image = pil_img  # keep original for future rotation
+            img.configure(image=img_tk)
+            img.image = img_tk
+            img.pil_image = pil_img
 
         except Exception as e:
             print("RotateImage error:", e)
@@ -746,21 +840,97 @@ class image:
 
             sprite = atlas.crop((x, y, x + w, y + h))
             return sprite
-        except:
-            pass
+        except Exception as e:
+            print(e)
+
+    def generate_noise(width, height):
+        noise = np.random.randint(0, 256, (height, width), dtype=np.uint8)
+        img = Image.fromarray(noise, mode="L")
+
+        return img
+
+    def update_transparency(img, panel, bg, width, height, x, y):
+        try:
+            scale_factor = 4
+
+            img = img.convert("RGBA")
+            img = img.resize(
+                (img.width * scale_factor, img.height * scale_factor),
+                Image.NEAREST
+            )
+            img = img.resize(
+                (width, height),
+                Image.BOX
+            )
+
+            if bg is not None:
+                bg = bg.convert("RGBA")
+
+                if x < 0 or y < 0 or x + width > bg.width or y + height > bg.height:
+                    return
+
+                bg_crop = bg.crop((x, y, x + width, y + height))
+                img = Image.alpha_composite(bg_crop, img)
+
+            img_tk = ImageTk.PhotoImage(img, master=panel.master)
+            panel.config(image=img_tk)
+            panel.image = img_tk
+            panel.pil_image = img
+
+        except Exception as e:
+            print("Update error:", e)
 
 class imageFilter:
-    def blur(image, scale):
-        return image.filter(ImageFilter.GaussianBlur(radius=scale))
+    def blur(image, amount):
+        return image.filter(ImageFilter.GaussianBlur(radius=amount))
+    
+    def show_only_edges(image):
+        return image.filter(ImageFilter.FIND_EDGES())
+    
+    def crisp_not_edges(image):
+        return image.filter(ImageFilter.EDGE_ENHANCE())
+    
+    def strong_crisp_not_edges(image):
+        return image.filter(ImageFilter.EDGE_ENHANCE_MORE())
+    
+    def crisp(image):
+        return image.filter(ImageFilter.DETAIL())
+    
+    def smooth(image):
+        return image.filter(ImageFilter.EMBOSS())
+    
+    def crisp_non_shapes(image):
+        return image.filter(ImageFilter.CONTOUR())
+    
+    def General_noise_Reduction(image, amount):
+        return image.filter(ImageFilter.MedianFilter(amount))
+    
+    def bright_noise_Reduction(image, amount):
+        return image.filter(ImageFilter.MinFilter(amount))
+    
+    def dark_noise_Reduction3(image, amount):
+        return image.filter(ImageFilter.MaxFilter(amount))
 
 class Networking:
     def __init__(self):
         self.server_socket = None
         self.client_socket = None
-        self.clients = []
+
+        # Server-side client storage:
+        # {conn: {"addr": (ip, port)}}
+        self.clients = {}
+
         self.running = False
         self.on_message = None
         self.is_server = False
+
+        # Message storage
+        self.messages = []  # stores received messages
+        self.lock = threading.Lock()
+
+    # =====================================================
+    # SERVER FUNCTIONS
+    # =====================================================
 
     def start_server(self, host="0.0.0.0", port=5000, on_message=None):
         """Starts a server that listens for clients."""
@@ -769,6 +939,7 @@ class Networking:
         self.running = True
 
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server_socket.bind((host, port))
         self.server_socket.listen()
 
@@ -780,46 +951,107 @@ class Networking:
         while self.running:
             try:
                 conn, addr = self.server_socket.accept()
-                print(f"[SERVER] Client connected: {addr}")
-                self.clients.append(conn)
+                with self.lock:
+                    self.clients[conn] = {"addr": addr}
 
-                threading.Thread(target=self._handle_client,
-                                 args=(conn,), daemon=True).start()
+                print(f"[SERVER] Client connected: {addr}")
+                threading.Thread(
+                    target=self._handle_client,
+                    args=(conn,),
+                    daemon=True
+                ).start()
             except:
                 break
 
     def _handle_client(self, conn):
         """Handles receiving messages from one client."""
+        buffer = ""
+
         while self.running:
             try:
                 data = conn.recv(1024)
                 if not data:
                     break
 
-                msg = data.decode()
-                if self.on_message:
-                    self.on_message(msg, conn)  # Pass who sent it
-            except:
+                buffer += data.decode()
+
+                while "\n" in buffer:
+                    msg, buffer = buffer.split("\n", 1)
+                    if not msg:
+                        continue
+
+                    with self.lock:
+                        client_info = self.clients.get(conn, {})
+                        addr = client_info.get("addr")
+                        self.messages.append({
+                            "source": "client",
+                            "conn": conn,
+                            "addr": addr,
+                            "message": msg
+                        })
+
+                    if self.on_message:
+                        self.on_message(msg, conn)
+
+            except Exception as e:
+                print("Client handler error:", e)
                 break
 
-        print("[SERVER] Client disconnected")
-        self.clients.remove(conn)
-        conn.close()
+        with self.lock:
+            addr = self.clients.get(conn, {}).get("addr")
+            if conn in self.clients:
+                del self.clients[conn]
 
-    def send_to_client(self, conn, message):
-        """Send a message to one connected client."""
+        print(f"[SERVER] Client disconnected: {addr}")
         try:
-            conn.send(message.encode())
+            conn.close()
         except:
             pass
 
+    def send_to_client(self, conn, message):
+        try:
+            conn.send((message + "\n").encode())
+            return True
+        except Exception as e:
+            print("Send to client failed:", e)
+            return False
+
     def broadcast(self, message):
-        """Send a message to every connected client."""
-        for client in list(self.clients):
+        dead_clients = []
+
+        with self.lock:
+            clients_list = list(self.clients.keys())
+
+        for client in clients_list:
             try:
-                client.send(message.encode())
-            except:
-                self.clients.remove(client)
+                client.send((message + "\n").encode())
+            except Exception as e:
+                print("Broadcast failed:", e)
+                dead_clients.append(client)
+
+        with self.lock:
+            for client in dead_clients:
+                if client in self.clients:
+                    try:
+                        client.close()
+                    except:
+                        pass
+                    del self.clients[client]
+
+    def get_connected_clients(self):
+        """
+        Returns a list of connected clients.
+        Each item contains:
+        {
+            "conn": socket_object,
+            "addr": (ip, port)
+        }
+        """
+        with self.lock:
+            return [
+                {"conn": conn, "addr": info["addr"]}
+                for conn, info in self.clients.items()
+            ]
 
     # =====================================================
     # CLIENT FUNCTIONS
@@ -839,27 +1071,82 @@ class Networking:
 
     def _listen_to_server(self):
         """Listen for messages from server."""
+        buffer = ""
+
         while self.running:
             try:
                 data = self.client_socket.recv(1024)
                 if not data:
                     break
 
-                msg = data.decode()
-                if self.on_message:
-                    self.on_message(msg)
-            except:
+                buffer += data.decode()
+
+                while "\n" in buffer:
+                    msg, buffer = buffer.split("\n", 1)
+                    if not msg:
+                        continue
+
+                    with self.lock:
+                        self.messages.append({
+                            "source": "server",
+                            "conn": self.client_socket,
+                            "addr": self.client_socket.getpeername(),
+                            "message": msg
+                        })
+
+                    if self.on_message:
+                        self.on_message(msg)
+
+            except Exception as e:
+                print("Server listener error:", e)
                 break
 
         print("[CLIENT] Disconnected from server")
 
     def send_to_server(self, message):
-        """Send message to server."""
         if self.client_socket:
             try:
-                self.client_socket.send(message.encode())
-            except:
-                pass
+                self.client_socket.send((message + "\n").encode())
+                return True
+            except Exception as e:
+                print("Send failed:", e)
+                return False
+        return False
+
+    # =====================================================
+    # MESSAGE FUNCTIONS
+    # =====================================================
+
+    def get_messages(self, clear=False):
+        """
+        Returns all received messages.
+
+        Each message looks like:
+        {
+            "source": "client" or "server",
+            "conn": socket_object,
+            "addr": (ip, port),
+            "message": "text"
+        }
+
+        If clear=True, stored messages are emptied after reading.
+        """
+        with self.lock:
+            msgs = self.messages[:]
+            if clear:
+                self.messages.clear()
+            return msgs
+
+    def pop_messages(self):
+        """Same as get_messages(clear=True)."""
+        return self.get_messages(clear=True)
+
+    def get_last_message(self):
+        """Returns the last received message, or None if there are no messages."""
+        with self.lock:
+            if self.messages:
+                return self.messages[-1]
+            return None
 
     # =====================================================
     # CLEANUP
@@ -869,22 +1156,86 @@ class Networking:
         """Shuts down server or client cleanly."""
         self.running = False
 
-        # Close client
         if self.client_socket:
-            try: self.client_socket.close()
-            except: pass
+            try:
+                self.client_socket.close()
+            except:
+                pass
+            self.client_socket = None
 
-        # Close server + all clients
         if self.server_socket:
-            try: self.server_socket.close()
-            except: pass
+            try:
+                self.server_socket.close()
+            except:
+                pass
+            self.server_socket = None
 
-        for c in self.clients:
-            try: c.close()
-            except: pass
+        with self.lock:
+            for conn in list(self.clients.keys()):
+                try:
+                    conn.close()
+                except:
+                    pass
+            self.clients.clear()
 
-        self.clients.clear()
         print("[NETWORK] Closed all connections.")
+
+class collision:
+    def AABB(object_a, object_b):
+        """checks for collision between two RECTANGULAR shapes"""
+        w1 = object_a.winfo_width()
+        w2 = object_b.winfo_width()
+        h1 = object_a.winfo_height()
+        h2 = object_b.winfo_height()
+        x1 = object_a.winfo_x()
+        x2 = object_b.winfo_x()
+        y1 = object_a.winfo_y()
+        y2 = object_b.winfo_y()
+
+        return (x1 - w1 / 2 <= x2 + w2 / 2 and
+                x1 + w1 / 2 >= x2 - w2 / 2 and
+                y1 - h1 / 2 <= y2 + h2 / 2 and
+                y1 + h1 / 2 >= y2 - h2 / 2
+                )
+
+    def mesh(label1, pil1, label2, pil2, alpha_threshold=1):
+        # Widget positions
+        x1, y1 = label1.winfo_x(), label1.winfo_y()
+        x2, y2 = label2.winfo_x(), label2.winfo_y()
+
+        w1, h1 = pil1.size
+        w2, h2 = pil2.size
+
+        # Overlap rectangle in window coordinates
+        left   = max(x1, x2)
+        top    = max(y1, y2)
+        right  = min(x1 + w1, x2 + w2)
+        bottom = min(y1 + h1, y2 + h2)
+
+        # No overlap at all
+        if left >= right or top >= bottom:
+            return False
+
+        # Make sure images have alpha
+        img1 = pil1.convert("RGBA")
+        img2 = pil2.convert("RGBA")
+
+        # Compare only overlapping pixels
+        for screen_y in range(top, bottom):
+            for screen_x in range(left, right):
+                img1_x = screen_x - x1
+                img1_y = screen_y - y1
+                img2_x = screen_x - x2
+                img2_y = screen_y - y2
+
+                a1 = img1.getpixel((img1_x, img1_y))[3]
+                a2 = img2.getpixel((img2_x, img2_y))[3]
+
+                if a1 >= alpha_threshold and a2 >= alpha_threshold:
+                    return True
+
+        return False
+
 
 if __name__ == "__main__":
     # Example usage
@@ -904,14 +1255,11 @@ if __name__ == "__main__":
     label2 = gui.label("mouse", window_name, None, "black", 1, 1)
     gui.pack(label1)
 
-    canvas = Canvas.create_canvas(1000, 1000, "#000000", window_name, -2, 0)
+    canvas, canvas_img = Canvas.create_canvas(1000, 1000, "#000000", window_name, -2, 0)
 
-    window.set_cursor("cross", window_name)
+    window.set_cursor("arrow", window_name)
 
     mouse = Mouse(window_name)
-
-    print_FPS = True
-    print_mouseX = True
 
     def test(event): print("test")
     def test2(): print("test")
@@ -951,14 +1299,29 @@ if __name__ == "__main__":
     gui.sliderStyle(slider, "#000000", "#ffffff", False)
     gui.pack(slider)
 
-    img2 = image.Load("image.png", 0, 0, 200, 200, window_name)
-    img3 = image.Load("image.png", 0, 0, 200, 200, window_name)
+    img2_ = image.Load("image.png")
+    img2 = image.show(img2_, 0, 0, 200, 200, window_name)
 
-    img5 = image.Load("image.png", 0, 0, 200, 200, window_name)
+    img3_ = image.Load("image.png")
+    img3 = image.show(img3_, 0, 0, 200, 200, window_name)
+    
+    img5_ = image.Load("image.png")
+    img5_ = imageFilter.General_noise_Reduction(img5_, 5)
+    img5_ = imageFilter.General_noise_Reduction(img5_, 5)
+    img5_ = imageFilter.General_noise_Reduction(img5_, 5)
+    img5 = image.show(img5_, 0, 0, 200, 200, window_name)
+    general_gui_functions.set_Y(img5, 300)
 
-    img4 = image.crop(img5, 0, 0, 20, 20)
+    img4_ = image.Load("image.png")
+    img4_ = image.crop(img4_, 1, 1, 50, 50)
+    img4 = image.show(img4_, 100, 100, 100, 100, window_name)
+    
+    for i in range(5):
+        general_gui_functions.increase_Z_order(img4)
 
-    #general_gui_functions.set_X(img4, 100)
+    #img6_ = image.generate_noise(100, 100)
+    #imageFilter.dark_noise_Reduction3(img6_, 5)
+    #img6 = image.show(img6_, 200, 200, 500, 500, window_name)
 
     speed = 8
 
@@ -977,10 +1340,7 @@ if __name__ == "__main__":
     Input.bindKey(window_name, "e", kill)
 
     image.Rotate(img2, 0)
-
-    mouseX = mouse.get_X()
-    mouseY = mouse.get_Y()
-
+    
     text_input = gui.createTextInput(window_name, 300, 0, 30, 10, True)
 
     #Mouse.bindMotion(window_name, test)
@@ -1005,16 +1365,20 @@ if __name__ == "__main__":
     print(Mouse.getGlobalX(window_name))
     print(Mouse.getGlobalY(window_name))
 
-    print(Mouse.getGlobalX(window_name))
-    print(Mouse.getGlobalY(window_name))
+    mouseY = Mouse.get_Y(mouse)
+    mouseX = Mouse.get_X(mouse)
 
+    print(mouseX)
+    print(mouseY)
+    
+    general_gui_functions.Set_Pos(img3, 100, 100)
+    img3.place(x=100, y=100) 
+
+    
     def mainloop():
-        mouseX = mouse.get_X()
-        mouseY = mouse.get_Y()
+        #mouseX = Mouse.get_X(mouse)
+        #mouseY = Mouse.get_Y(mouse)
         window.Title(window_name, str(window.getFPS()))
-        Mouse.bindMotion(window_name, general_gui_functions.Set_Pos(img2, (mouseX + 1), (mouseY + 1)))
-        random.Screen(10, 50, canvas, window_name)
-        window.SetPosition(window_name, 1, 1)
         window.after(window_name, mainloop)
 
     mainloop()
